@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [string] $ProjectPath,
@@ -117,12 +117,30 @@ function Find-Uv {
 
 function Find-CompatiblePhp {
     $candidates = @()
+    $drive = (Get-Location).Drive.Name
     $pathPhp = Get-Command php -ErrorAction SilentlyContinue
     if ($pathPhp) { $candidates += $pathPhp.Source }
-    $candidates += Get-ChildItem -Path 'C:\laragon\bin\php\*\php.exe','D:\laragon\bin\php\*\php.exe' -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | ForEach-Object FullName
+    $priorityPaths = @(
+        "$drive`:\laragon\bin\php\*\php.exe",
+        'C:\laragon\bin\php\*\php.exe',
+        'D:\laragon\bin\php\*\php.exe'
+    )
+    $laragonPhps = Get-ChildItem -Path $priorityPaths -ErrorAction SilentlyContinue |
+        Select-Object -Unique FullName |
+        Sort-Object {
+            if ($_.FullName -match 'php-(\d+\.\d+\.\d+)') {
+                [version]$matches[1]
+            } else {
+                [version]'0.0.0'
+            }
+        } -Descending |
+        ForEach-Object FullName
+    $candidates += $laragonPhps
     foreach ($candidate in ($candidates | Select-Object -Unique)) {
-        & $candidate artisan --version *> $null
-        if ($LASTEXITCODE -eq 0) { return $candidate }
+        if (Test-Path $candidate) {
+            & $candidate artisan --version *> $null
+            if ($LASTEXITCODE -eq 0) { return $candidate }
+        }
     }
     return $null
 }
@@ -242,3 +260,4 @@ Start with files or modules named by the user and search narrowly. Use the local
 } finally {
     Pop-Location
 }
+
