@@ -1,6 +1,6 @@
 # Codex, Cursor ve Antigravity Otomatik Bağlam Kurulumu
 
-Bu paket, bir yazılım projesinde Graphify kod grafını ve uygun MCP bağlantılarını otomatik kurar. Windows, Codex, Cursor ve Google Antigravity için hazırlanmıştır.
+Bu paket, bir yazılım projesinde Graphify kod grafını ve uygun MCP bağlantılarını otomatik kurar. Windows, Linux, macOS, Codex, Cursor ve Google Antigravity için hazırlanmıştır.
 
 ## Kurulan bileşenler
 
@@ -8,7 +8,7 @@ Bu paket, bir yazılım projesinde Graphify kod grafını ve uygun MCP bağlant�
 - Projeye özel yerel kod grafı
 - Codex, Cursor ve Antigravity Graphify MCP bağlantıları
 - Laravel projesinde mevcutsa Laravel Boost MCP bağlantısı
-- Kod kaydedildiğinde grafı yenileyen Windows görevi
+- Kod kaydedildiğinde grafı yenileyen platforma uygun arka plan görevi
 - Commit ve dal değişimlerinde çalışan Git hook'ları
 - Gizli, büyük ve üretilmiş dosyalar için bağlam filtreleri
 - Kısa ve odaklı ajan kuralları
@@ -17,14 +17,15 @@ Kod grafı `--code-only` seçeneğiyle yerel olarak oluşturulur. Kaynak kodun i
 
 ## Gereksinimler
 
-- Windows 10 veya Windows 11
+- Windows 10/11, güncel bir Linux dağıtımı veya macOS
 - İnternet bağlantısı (ilk kurulum sırasında)
 - Git
-- Windows Package Manager (`winget`)
+- Windows: Windows Package Manager (`winget`) ve PowerShell 5.1+
+- Linux/macOS: Bash, curl ve Python 3.10+
 - Proje klasörüne yazma yetkisi
 - Laravel Boost kullanılacaksa projede kurulmuş Composer bağımlılıkları
 
-## En kolay kurulum
+## Windows: en kolay kurulum
 
 1. ZIP dosyasını normal bir klasöre çıkarın.
 2. Proje klasörünü `INSTALL.bat` dosyasının üzerine sürükleyip bırakın.
@@ -47,6 +48,16 @@ Alternatif olarak `INSTALL.bat` dosyasına çift tıklayın ve istenen alana pro
 C:\projeler\ornek-proje
 ```
 
+### Linux ve macOS
+
+```bash
+bash TR/INSTALL_LINUX_MACOS.sh /proje/yolu
+# Doğrudan ve etkileşimsiz kullanım:
+bash setup-ai-context.sh /proje/yolu --profile Minimal
+```
+
+Gerektiğinde `--skip-laravel-boost` veya `--no-watcher` kullanabilirsiniz. Linux kullanılabiliyorsa systemd kullanıcı servisi, macOS ise LaunchAgent kullanır. Arka plan servisi kurulamazsa Git hook'ları çalışmaya devam eder.
+
 ## Kurulumdan sonra kontrol
 
 ### Codex
@@ -61,7 +72,7 @@ Cursor'da `Customize > MCPs` bölümünü açın. `graphify` ve varsa `laravel-b
 
 `Settings > Customizations > Installed MCP Servers` bölümünü açıp **Refresh** düğmesine basın. Proje adına göre oluşturulan Graphify kaydı görünmelidir.
 
-## Otomatik güncelleme
+## Windows: otomatik güncelleme
 
 Kurulum, proje adı ve yolundan türetilen benzersiz `Graphify-<proje-kimligi>-Watch` adlı bir Windows Scheduled Task oluşturur. Bu görev:
 

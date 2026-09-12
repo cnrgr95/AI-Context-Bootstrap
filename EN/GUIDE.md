@@ -2,9 +2,10 @@
 
 ## Requirements
 
-- Windows 10 or Windows 11
-- Git for Windows
-- WinGet
+- Windows 10/11, a current Linux distribution, or macOS
+- Git
+- Windows: WinGet and PowerShell 5.1+
+- Linux/macOS: Bash, curl, and Python 3.10+
 - Internet access during first installation
 - Write access to the target repository
 
@@ -26,12 +27,28 @@ powershell -ExecutionPolicy Bypass -File ..\setup-ai-context.ps1 -ProjectPath "C
 
 The operation is designed to be repeatable. It merges MCP JSON configuration and replaces only its marked Codex and AGENTS sections.
 
+### Linux and macOS
+
+```bash
+bash EN/INSTALL_LINUX_MACOS.sh /path/to/project
+# Direct, non-interactive form:
+bash setup-ai-context.sh /path/to/project --profile Minimal
+```
+
+Use `--skip-laravel-boost` or `--no-watcher` when needed. Linux uses a systemd user service when available; macOS uses a LaunchAgent. Git hooks remain active if a background service cannot be installed.
+
 ## Verify
 
 Drag the project directory onto `CHECK_STATUS.bat`, or run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File ..\check-status.ps1 -ProjectPath "C:\projects\my-app"
+```
+
+Linux/macOS:
+
+```bash
+bash EN/CHECK_STATUS_LINUX_MACOS.sh /path/to/project
 ```
 
 The checker reports configuration files, Graphify availability, graph statistics, and watcher state. It does not modify the project.

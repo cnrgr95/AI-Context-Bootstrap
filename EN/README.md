@@ -1,7 +1,7 @@
-# AI Context Bootstrap for Windows
+# AI Context Bootstrap
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
-[![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)](https://www.microsoft.com/windows)
+[![Platforms](https://img.shields.io/badge/Windows%20%7C%20Linux%20%7C%20macOS-supported-0078D4)](GUIDE.md#requirements)
 
 One-command, project-scoped setup for **Codex local clients**, **Codex Cloud**, **Cursor**, and **Google Antigravity**. It builds a local Graphify code graph, connects supported MCP clients, filters noisy files, and keeps the graph current automatically.
 
@@ -15,7 +15,7 @@ One-command, project-scoped setup for **Codex local clients**, **Codex Cloud**, 
 - Detects Laravel Boost and a compatible PHP executable when available.
 - Preserves existing JSON configuration and updates only managed MCP entries.
 - Excludes secrets, dependency trees, generated assets, dumps, and logs.
-- Keeps the graph current with Git hooks and a per-project Windows watcher.
+- Keeps the graph current with Git hooks and a platform-specific watcher.
 - Uses stable managed markers, so running the installer again repairs the setup without duplicating rules.
 - Provides a read-only status checker.
 - Generates Linux setup, maintenance, and token-limited query helpers for Codex Cloud.
@@ -23,10 +23,10 @@ One-command, project-scoped setup for **Codex local clients**, **Codex Cloud**, 
 ## Quick start
 
 1. Download and extract the latest release ZIP.
-2. Drag your project folder onto `INSTALL.bat`.
+2. On Windows, drag your project folder onto `INSTALL.bat`. On Linux or macOS, run `bash INSTALL_LINUX_MACOS.sh /path/to/project`.
 3. Choose **Minimal** for the smallest MCP tool context.
 4. Restart your AI editor or refresh its MCP list.
-5. Drag the same project onto `CHECK_STATUS.bat` to verify the installation.
+5. On Windows, drag the project onto `CHECK_STATUS.bat`; on Linux/macOS run `bash CHECK_STATUS_LINUX_MACOS.sh /path/to/project` to verify the installation.
 6. Commit the generated `.codex/cloud` directory when the repository will be used with Codex Cloud.
 
 For Codex Cloud, set the environment scripts to:
@@ -100,7 +100,10 @@ The installer downloads `uv` through WinGet and installs `graphifyy` from PyPI. 
 
 ## Platform support
 
-The automated installer currently supports Windows 10 and Windows 11. Pull requests for macOS and Linux installers are welcome.
+- Windows 10/11: PowerShell installer and Scheduled Task watcher.
+- Linux: Bash installer and systemd user watcher when available.
+- macOS: Bash installer and LaunchAgent watcher.
+- All platforms retain Graphify Git hooks as an update fallback.
 
 ## License
 

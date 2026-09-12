@@ -2,6 +2,14 @@
 
 All notable changes follow semantic versioning.
 
+## 2.0.0 - 2026-09-12
+
+- Added native Linux and macOS installation and status scripts.
+- Added localized Unix launchers under both `EN` and `TR`.
+- Added Linux systemd user watchers and macOS LaunchAgents with Git-hook fallback.
+- Added Ubuntu and macOS CI syntax validation.
+- Preserved the same Minimal, Balanced, and Full profiles across all supported platforms.
+
 ## 1.3.0 - 2026-09-12
 
 - Added Codex Cloud setup, maintenance, and token-limited Graphify query scripts.
