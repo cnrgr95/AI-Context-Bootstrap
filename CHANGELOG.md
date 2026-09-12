@@ -2,6 +2,13 @@
 
 All notable changes follow semantic versioning.
 
+## 2.2.0 - 2026-09-12
+
+- Reorganized the distribution as `EN/{Linux,Windows,macOS}` and `TR/{Linux,Windows,macOS}`.
+- Made each language/platform folder self-contained with its own installer, status checker, guide, agent prompt, setup engine, and Codex Cloud templates.
+- Reduced the root README to an English introduction and package selector.
+- Added CI checks for all six packages and updated repeat-install smoke tests.
+
 ## 2.1.0 - 2026-09-12
 
 - Organized entry points into separate Windows, Linux, and macOS folders, each with English and Turkish options.

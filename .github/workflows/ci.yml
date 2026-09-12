@@ -37,6 +37,20 @@ jobs:
             if ($matches) { $matches; exit 1 }
           }
 
+      - name: Check six self-contained packages
+        shell: pwsh
+        run: |
+          foreach ($lang in @('EN', 'TR')) {
+            foreach ($platform in @('Windows', 'Linux', 'macOS')) {
+              $base = Join-Path $lang $platform
+              $engine = if ($platform -eq 'Windows') { 'ps1' } else { 'sh' }
+              $launcher = if ($platform -eq 'Windows') { 'bat' } else { 'sh' }
+              foreach ($file in @("setup-ai-context.$engine", "check-status.$engine", "INSTALL.$launcher", "CHECK_STATUS.$launcher", 'README.md', 'GUIDE.md', 'AGENT_PROMPT.md', 'SECURITY.md', 'LICENSE', 'cloud/setup.sh', 'cloud/maintenance.sh', 'cloud/query.sh')) {
+                if (-not (Test-Path -LiteralPath (Join-Path $base $file))) { throw "Missing: $base/$file" }
+              }
+            }
+          }
+
   unix-syntax:
     strategy:
       matrix:
