@@ -27,7 +27,7 @@ Kod grafı `--code-only` seçeneğiyle yerel olarak oluşturulur. Kaynak kodun i
 ## En kolay kurulum
 
 1. ZIP dosyasını normal bir klasöre çıkarın.
-2. Proje klasörünü `INSTALL_OR_REPAIR.bat` dosyasının üzerine sürükleyip bırakın.
+2. Proje klasörünü `INSTALL.bat` dosyasının üzerine sürükleyip bırakın.
 3. Açılan terminalde işlemlerin tamamlanmasını bekleyin.
 4. Codex, Cursor ve Antigravity'yi yeniden başlatın veya MCP listesini yenileyin.
 
@@ -39,9 +39,9 @@ Kod grafı `--code-only` seçeneğiyle yerel olarak oluşturulur. Kaynak kodun i
 | Dengeli | Mimari Graphify araçları, yerel topluluk haritası ve varsa Laravel Boost | Laravel geliştirme ve modüller arası çalışmalar |
 | Tam | Tüm Graphify araçları, topluluk haritası ve varsa Laravel Boost | PR analizi ve bütün araçların gerektiği özel oturumlar |
 
-Profil daha sonra değiştirilebilir. `INSTALL_TR.bat` dosyasını yeniden çalıştırıp yeni profili seçmeniz yeterlidir.
+Profil daha sonra değiştirilebilir. `INSTALL.bat` dosyasını yeniden çalıştırıp yeni profili seçmeniz yeterlidir.
 
-Alternatif olarak `INSTALL_OR_REPAIR.bat` dosyasına çift tıklayın ve istenen alana projenin tam yolunu yazın:
+Alternatif olarak `INSTALL.bat` dosyasına çift tıklayın ve istenen alana projenin tam yolunu yazın:
 
 ```text
 C:\projeler\ornek-proje
@@ -75,7 +75,7 @@ Git hook'ları da commit ve dal değişimlerinde grafı yeniler. Güncellemeler 
 
 ## Yeniden çalıştırma ve onarım
 
-Aynı proje için `INSTALL_OR_REPAIR.bat` tekrar çalıştırılabilir. Betik mevcut JSON ayarlarını silmez; ilgili MCP kayıtlarını ekler veya günceller. Eksik grafı, kuralları ve otomasyon görevini yeniden oluşturur.
+Aynı proje için `INSTALL.bat` tekrar çalıştırılabilir. Betik mevcut JSON ayarlarını silmez; ilgili MCP kayıtlarını ekler veya günceller. Eksik grafı, kuralları ve otomasyon görevini yeniden oluşturur.
 
 Graphify dosyaları açık bir IDE tarafından kilitlenirse Codex, Cursor ve Antigravity'yi kapatıp betiği yeniden çalıştırın.
 
@@ -84,19 +84,19 @@ Graphify dosyaları açık bir IDE tarafından kilitlenirse Codex, Cursor ve Ant
 PowerShell üzerinden doğrudan çalıştırma:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\setup-ai-context.ps1 -ProjectPath "C:\projeler\ornek-proje"
+powershell -ExecutionPolicy Bypass -File ..\setup-ai-context.ps1 -ProjectPath "C:\projeler\ornek-proje"
 ```
 
 Laravel Boost kurulumunu atlamak için:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\setup-ai-context.ps1 -ProjectPath "C:\projeler\ornek-proje" -SkipLaravelBoost
+powershell -ExecutionPolicy Bypass -File ..\setup-ai-context.ps1 -ProjectPath "C:\projeler\ornek-proje" -SkipLaravelBoost
 ```
 
 Canlı Windows izleyicisini kurmadan yalnızca graf, MCP ve Git hook'larını hazırlamak için:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\setup-ai-context.ps1 -ProjectPath "C:\projeler\ornek-proje" -NoWatcher
+powershell -ExecutionPolicy Bypass -File ..\setup-ai-context.ps1 -ProjectPath "C:\projeler\ornek-proje" -NoWatcher
 ```
 
 ## Oluşturulan proje dosyaları
@@ -114,7 +114,7 @@ Betik ayrıca kısa bir bölümü mevcut `AGENTS.md` dosyasına işaretli biçim
 
 ## Hazır ajan promptu
 
-Betik çalıştırılamayan bir ortamda `AGENT_PROMPT_TR.md` içindeki promptu hedef araçta kullanabilirsiniz. Prompt içindeki `<PROJE_KLASORUNUN_TAM_YOLU>` alanını gerçek proje yoluyla değiştirin.
+Betik çalıştırılamayan bir ortamda `AGENT_PROMPT.md` içindeki promptu hedef araçta kullanabilirsiniz. Prompt içindeki `<PROJE_KLASORUNUN_TAM_YOLU>` alanını gerçek proje yoluyla değiştirin.
 
 ## Sorun giderme
 
@@ -130,7 +130,7 @@ Betik Laragon altındaki PHP sürümlerini sınar ve Artisan'ı çalıştırabil
 
 ### Windows betiği engelliyor
 
-`INSTALL_OR_REPAIR.bat`, PowerShell'i yalnızca bu çalıştırma için `ExecutionPolicy Bypass` ile açar. Kurumsal bir politika bunu da engelliyorsa sistem yöneticisinin izin verdiği terminalden `setup-ai-context.ps1` dosyasını çalıştırın.
+`INSTALL.bat`, PowerShell'i yalnızca bu çalıştırma için `ExecutionPolicy Bypass` ile açar. Kurumsal bir politika bunu da engelliyorsa sistem yöneticisinin izin verdiği terminalden `setup-ai-context.ps1` dosyasını çalıştırın.
 
 ### Graf güncel görünmüyor
 

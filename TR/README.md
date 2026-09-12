@@ -1,6 +1,6 @@
 # Windows için AI Context Bootstrap
 
-[![Lisans: MIT](https://img.shields.io/badge/Lisans-MIT-blue.svg)](LICENSE)
+[![Lisans: MIT](https://img.shields.io/badge/Lisans-MIT-blue.svg)](../LICENSE)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)](https://www.microsoft.com/windows)
 
 **Codex**, **Cursor** ve **Google Antigravity** için tek komutla proje bağlamı kurulumu. Yerel Graphify kod grafı oluşturur, MCP bağlantılarını kurar, gereksiz dosyaları filtreler ve grafı otomatik güncel tutar.
@@ -10,7 +10,7 @@
 ## Hızlı başlangıç
 
 1. Son sürüm ZIP dosyasını indirip çıkarın.
-2. Proje klasörünü `INSTALL_TR.bat` üzerine sürükleyin.
+2. Proje klasörünü `INSTALL.bat` üzerine sürükleyin.
 3. **Minimal** profili seçin.
 4. Editörü yeniden başlatın veya MCP listesini yenileyin.
 5. Proje klasörünü `CHECK_STATUS.bat` üzerine sürükleyerek kurulumu doğrulayın.
@@ -36,4 +36,4 @@ Cursor, araç durumlarını kendi arayüzünde sakladığı için kullanılmayan
 - Tekrar çalıştırılabilir kurulum ve onarım
 - Laravel Boost ve uyumlu PHP algılama
 
-Ayrıntılar için [Türkçe kullanım kılavuzuna](KULLANIM_KILAVUZU.md) bakın.
+Ayrıntılar için [Türkçe kullanım kılavuzuna](GUIDE.md) bakın.

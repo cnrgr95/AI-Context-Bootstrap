@@ -11,7 +11,7 @@ set /p "CHOICE=Profil [1]: "
 set "PROFILE=Minimal"
 if "%CHOICE%"=="2" set "PROFILE=Balanced"
 if "%CHOICE%"=="3" set "PROFILE=Full"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0setup-ai-context.ps1" -ProjectPath "%PROJECT_PATH%" -ContextProfile "%PROFILE%"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\setup-ai-context.ps1" -ProjectPath "%PROJECT_PATH%" -ContextProfile "%PROFILE%"
 set "RESULT=%ERRORLEVEL%"
 echo.
 if "%RESULT%"=="0" (echo Kurulum tamamlandi.) else (echo Kurulum basarisiz. Hata kodu: %RESULT%)

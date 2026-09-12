@@ -10,16 +10,16 @@
 
 ## Install or repair
 
-Drag a project directory onto `INSTALL_OR_REPAIR.bat`, or run:
+Drag a project directory onto `INSTALL.bat`, or run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\setup-ai-context.ps1 -ProjectPath "C:\projects\my-app"
+powershell -ExecutionPolicy Bypass -File ..\setup-ai-context.ps1 -ProjectPath "C:\projects\my-app"
 ```
 
 Choose a context profile explicitly when needed:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\setup-ai-context.ps1 -ProjectPath "C:\projects\my-app" -ContextProfile Minimal
+powershell -ExecutionPolicy Bypass -File ..\setup-ai-context.ps1 -ProjectPath "C:\projects\my-app" -ContextProfile Minimal
 ```
 
 `Minimal` exposes five core Graphify tools and removes installer-managed Laravel Boost entries. `Balanced` adds architectural graph tools and Laravel Boost. `Full` exposes the complete Graphify tool set and Laravel Boost. Balanced and Full also build local graph communities without an LLM.
@@ -31,7 +31,7 @@ The operation is designed to be repeatable. It merges MCP JSON configuration and
 Drag the project directory onto `CHECK_STATUS.bat`, or run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\check-status.ps1 -ProjectPath "C:\projects\my-app"
+powershell -ExecutionPolicy Bypass -File ..\check-status.ps1 -ProjectPath "C:\projects\my-app"
 ```
 
 The checker reports configuration files, Graphify availability, graph statistics, and watcher state. It does not modify the project.

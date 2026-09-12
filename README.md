@@ -1,93 +1,27 @@
-# AI Context Bootstrap for Windows
+# AI Context Bootstrap
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)](https://www.microsoft.com/windows)
+[![CI](https://github.com/cnrgr95/AI-Context-Bootstrap/actions/workflows/ci.yml/badge.svg)](https://github.com/cnrgr95/AI-Context-Bootstrap/actions/workflows/ci.yml)
 
-One-command, project-scoped setup for **Codex**, **Cursor**, and **Google Antigravity**. It builds a local Graphify code graph, connects MCP clients, filters noisy files, and keeps the graph current automatically.
+Choose your language / Dilinizi seçin:
 
-> This project reduces avoidable context usage. It cannot guarantee a fixed token reduction because usage depends on the model, task, chat history, and enabled tools.
-
-## Features
-
-- Installs the official `graphifyy` package in an isolated `uv` environment.
-- Builds a local, code-only AST graph without sending source code to a cloud model.
-- Configures Graphify MCP for Codex, Cursor, and Antigravity.
-- Detects Laravel Boost and a compatible PHP executable when available.
-- Preserves existing JSON configuration and updates only managed MCP entries.
-- Excludes secrets, dependency trees, generated assets, dumps, and logs.
-- Keeps the graph current with Git hooks and a per-project Windows watcher.
-- Uses stable managed markers, so running the installer again repairs the setup without duplicating rules.
-- Provides a read-only status checker.
-
-## Quick start
-
-1. Download and extract the latest release ZIP.
-2. Drag your project folder onto `INSTALL_EN.bat` (or use `INSTALL_TR.bat` for Turkish).
-3. Choose **Minimal** for the smallest MCP tool context.
-4. Restart your AI editor or refresh its MCP list.
-5. Drag the same project onto `CHECK_STATUS.bat` to verify the installation.
-
-PowerShell usage:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\setup-ai-context.ps1 -ProjectPath "C:\projects\my-app"
-```
-
-Optional switches:
-
-```powershell
--SkipLaravelBoost  # Do not configure Laravel Boost
--NoWatcher         # Do not create the Windows logon watcher
-```
-
-## Context profiles
-
-| Profile | Enabled scope | Best for |
+| Language | Documentation | One-click installer |
 |---|---|---|
-| Minimal | Five core Graphify tools | Lowest MCP catalog overhead; default and recommended |
-| Balanced | Architectural Graphify tools and Laravel Boost | Laravel implementation and architecture work |
-| Full | All Graphify tools and Laravel Boost | PR analysis and sessions requiring every capability |
+| 🇹🇷 Türkçe | [TR/README.md](TR/README.md) | `TR\INSTALL.bat` |
+| 🇬🇧 English | [EN/README.md](EN/README.md) | `EN\INSTALL.bat` |
 
-Cursor stores individual tool toggles in its UI. For the smallest context, disable unused tools under **Customize → MCPs**; disabled tools are not loaded into Agent context.
+The shared PowerShell automation engine stays in the repository root. Both language folders provide their own README, detailed guide, agent prompt, installer, and status checker.
 
-## What changes in the target project
+Ortak PowerShell otomasyon motoru depo kökünde bulunur. Her dil klasöründe ayrı README, ayrıntılı kılavuz, ajan promptu, kurucu ve durum denetleyicisi vardır.
 
-The installer may create or update:
+## Quick start / Hızlı başlangıç
 
-```text
-.agents/mcp_config.json
-.agents/rules/efficient-context.md
-.codex/config.toml
-.cursor/mcp.json
-.cursorignore
-.graphifyignore
-.gitattributes
-.gitignore
-.mcp.json
-AGENTS.md
-graphify-out/graph.json
-```
+1. Download and extract the ZIP / ZIP dosyasını indirip çıkarın.
+2. Drag a project folder onto `EN\INSTALL.bat` or `TR\INSTALL.bat` / Proje klasörünü ilgili kurucuya sürükleyin.
+3. Select **Minimal** for the smallest MCP tool context / En düşük MCP araç bağlamı için **Minimal** seçin.
+4. Restart the editor and run the matching `CHECK_STATUS.bat` / Editörü yeniden başlatıp ilgili durum denetleyicisini çalıştırın.
 
-Existing MCP JSON objects are merged. The Codex and AGENTS sections use explicit managed markers. Review changes before committing them.
-
-## Privacy and security
-
-Code extraction uses Graphify's local tree-sitter AST pipeline with `--code-only`. The ignore rules exclude common secret and generated-file paths. Ignore files are a context optimization and are not a complete security boundary. Never commit credentials.
-
-The installer downloads `uv` through WinGet and installs `graphifyy` from PyPI. Review [SECURITY.md](SECURITY.md) before use in managed or regulated environments.
-
-## Documentation
-
-- [English guide](docs/GUIDE.md)
-- [Türkçe README](README_TR.md)
-- [Türkçe kullanım kılavuzu](KULLANIM_KILAVUZU.md)
-- [Agent-driven installation prompt](AGENT_PROMPT_TR.md)
-- [Contributing](CONTRIBUTING.md)
-
-## Platform support
-
-The automated installer currently supports Windows 10 and Windows 11. Pull requests for macOS and Linux installers are welcome.
-
-## License
-
-MIT. Graphify and the supported editors retain their own licenses and trademarks.
+> The project reduces avoidable context usage, but no fixed token-saving percentage can be guaranteed.
+>
+> Proje gereksiz bağlam kullanımını azaltır; sabit bir token tasarrufu yüzdesi garanti edilemez.

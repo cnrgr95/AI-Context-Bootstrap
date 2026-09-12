@@ -2,6 +2,12 @@
 
 All notable changes follow semantic versioning.
 
+## 1.2.0 - 2026-09-12
+
+- Separated all Turkish and English user-facing files into `TR` and `EN` directories.
+- Added a language-neutral root landing page and localized status checkers.
+- Updated localized installers so they call the shared automation engine from their subdirectories.
+
 ## 1.1.0 - 2026-09-12
 
 - Added complete English and Turkish entry points and documentation.
