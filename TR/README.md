@@ -1,5 +1,7 @@
 # AI Context Bootstrap
 
+Platformunuzu seçin: [Windows](../Windows/TR/README.md) · [Linux](../Linux/TR/README.md) · [macOS](../macOS/TR/README.md).
+
 [![Lisans: MIT](https://img.shields.io/badge/Lisans-MIT-blue.svg)](../LICENSE)
 [![Platformlar](https://img.shields.io/badge/Windows%20%7C%20Linux%20%7C%20macOS-destekleniyor-0078D4)](GUIDE.md#gereksinimler)
 
@@ -10,10 +12,10 @@
 ## Hızlı başlangıç
 
 1. Son sürüm ZIP dosyasını indirip çıkarın.
-2. Windows'ta proje klasörünü `INSTALL.bat` üzerine sürükleyin. Linux veya macOS'ta `bash INSTALL_LINUX_MACOS.sh /proje/yolu` çalıştırın.
+2. Windows'ta proje klasörünü `Windows/TR/INSTALL.bat` üzerine sürükleyin. Linux'ta `bash Linux/TR/INSTALL.sh /proje/yolu`, macOS'ta `bash macOS/TR/INSTALL.sh /proje/yolu` çalıştırın.
 3. **Minimal** profili seçin.
 4. Editörü yeniden başlatın veya MCP listesini yenileyin.
-5. Windows'ta proje klasörünü `CHECK_STATUS.bat` üzerine sürükleyin; Linux/macOS'ta `bash CHECK_STATUS_LINUX_MACOS.sh /proje/yolu` çalıştırın.
+5. Kurulumu kendi platform/dil klasörünüzdeki durum denetleyicisiyle doğrulayın.
 6. Depo Codex Cloud ile kullanılacaksa oluşturulan `.codex/cloud` klasörünü commit edin.
 
 Codex Cloud ortamında kurulum ve bakım betikleri olarak sırasıyla şunları kullanın:

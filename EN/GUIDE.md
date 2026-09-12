@@ -11,7 +11,7 @@
 
 ## Install or repair
 
-Drag a project directory onto `INSTALL.bat`, or run:
+Drag a project directory onto `Windows/EN/INSTALL.bat`, or run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File ..\setup-ai-context.ps1 -ProjectPath "C:\projects\my-app"
@@ -30,7 +30,9 @@ The operation is designed to be repeatable. It merges MCP JSON configuration and
 ### Linux and macOS
 
 ```bash
-bash EN/INSTALL_LINUX_MACOS.sh /path/to/project
+bash Linux/EN/INSTALL.sh /path/to/project
+# On macOS:
+bash macOS/EN/INSTALL.sh /path/to/project
 # Direct, non-interactive form:
 bash setup-ai-context.sh /path/to/project --profile Minimal
 ```
@@ -39,7 +41,7 @@ Use `--skip-laravel-boost` or `--no-watcher` when needed. Linux uses a systemd u
 
 ## Verify
 
-Drag the project directory onto `CHECK_STATUS.bat`, or run:
+Drag the project directory onto `Windows/EN/CHECK_STATUS.bat`, or run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File ..\check-status.ps1 -ProjectPath "C:\projects\my-app"
@@ -48,7 +50,9 @@ powershell -ExecutionPolicy Bypass -File ..\check-status.ps1 -ProjectPath "C:\pr
 Linux/macOS:
 
 ```bash
-bash EN/CHECK_STATUS_LINUX_MACOS.sh /path/to/project
+bash Linux/EN/CHECK_STATUS.sh /path/to/project
+# On macOS:
+bash macOS/EN/CHECK_STATUS.sh /path/to/project
 ```
 
 The checker reports configuration files, Graphify availability, graph statistics, and watcher state. It does not modify the project.
@@ -99,7 +103,7 @@ The Graphify setup still completes. Install the project's Composer dependencies 
 
 ### MCP server does not appear
 
-Validate the setup with `CHECK_STATUS.bat`, refresh the editor's MCP list, and restart the editor. For Antigravity, confirm that the user-level `.gemini/config/mcp_config.json` exists.
+Validate the setup with `Windows/EN/CHECK_STATUS.bat`, refresh the editor's MCP list, and restart the editor. For Antigravity, confirm that the user-level `.gemini/config/mcp_config.json` exists.
 
 ### Graph looks stale
 

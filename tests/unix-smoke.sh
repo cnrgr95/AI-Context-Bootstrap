@@ -31,6 +31,12 @@ chmod +x "$HOME/.local/bin/"*
 for pass in 1 2; do
   bash "$repo/setup-ai-context.sh" "$temp/project" --profile Minimal --no-watcher
 done
+for platform in Linux macOS; do
+  for language in EN TR; do
+    printf '\n' | bash "$repo/$platform/$language/INSTALL.sh" "$temp/project" --no-watcher
+    bash "$repo/$platform/$language/CHECK_STATUS.sh" "$temp/project"
+  done
+done
 bash "$repo/check-status.sh" "$temp/project"
 python3 - "$temp/project" "$HOME" <<'PY'
 import json, pathlib, sys

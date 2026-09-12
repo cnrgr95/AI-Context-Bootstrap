@@ -28,7 +28,7 @@ Kod grafı `--code-only` seçeneğiyle yerel olarak oluşturulur. Kaynak kodun i
 ## Windows: en kolay kurulum
 
 1. ZIP dosyasını normal bir klasöre çıkarın.
-2. Proje klasörünü `INSTALL.bat` dosyasının üzerine sürükleyip bırakın.
+2. Proje klasörünü `Windows/TR/INSTALL.bat` dosyasının üzerine sürükleyip bırakın.
 3. Açılan terminalde işlemlerin tamamlanmasını bekleyin.
 4. Codex, Cursor ve Antigravity'yi yeniden başlatın veya MCP listesini yenileyin.
 
@@ -40,9 +40,9 @@ Kod grafı `--code-only` seçeneğiyle yerel olarak oluşturulur. Kaynak kodun i
 | Dengeli | Mimari Graphify araçları, yerel topluluk haritası ve varsa Laravel Boost | Laravel geliştirme ve modüller arası çalışmalar |
 | Tam | Tüm Graphify araçları, topluluk haritası ve varsa Laravel Boost | PR analizi ve bütün araçların gerektiği özel oturumlar |
 
-Profil daha sonra değiştirilebilir. `INSTALL.bat` dosyasını yeniden çalıştırıp yeni profili seçmeniz yeterlidir.
+Profil daha sonra değiştirilebilir. `Windows/TR/INSTALL.bat` dosyasını yeniden çalıştırıp yeni profili seçmeniz yeterlidir.
 
-Alternatif olarak `INSTALL.bat` dosyasına çift tıklayın ve istenen alana projenin tam yolunu yazın:
+Alternatif olarak `Windows/TR/INSTALL.bat` dosyasına çift tıklayın ve istenen alana projenin tam yolunu yazın:
 
 ```text
 C:\projeler\ornek-proje
@@ -51,7 +51,9 @@ C:\projeler\ornek-proje
 ### Linux ve macOS
 
 ```bash
-bash TR/INSTALL_LINUX_MACOS.sh /proje/yolu
+bash Linux/TR/INSTALL.sh /proje/yolu
+# macOS için:
+bash macOS/TR/INSTALL.sh /proje/yolu
 # Doğrudan ve etkileşimsiz kullanım:
 bash setup-ai-context.sh /proje/yolu --profile Minimal
 ```
@@ -108,7 +110,7 @@ Yardımcı varsayılan olarak çıktıyı 800 token ile sınırlar. Daha büyük
 
 ## Yeniden çalıştırma ve onarım
 
-Aynı proje için `INSTALL.bat` tekrar çalıştırılabilir. Betik mevcut JSON ayarlarını silmez; ilgili MCP kayıtlarını ekler veya günceller. Eksik grafı, kuralları ve otomasyon görevini yeniden oluşturur.
+Aynı proje için `Windows/TR/INSTALL.bat` tekrar çalıştırılabilir. Betik mevcut JSON ayarlarını silmez; ilgili MCP kayıtlarını ekler veya günceller. Eksik grafı, kuralları ve otomasyon görevini yeniden oluşturur.
 
 Graphify dosyaları açık bir IDE tarafından kilitlenirse Codex, Cursor ve Antigravity'yi kapatıp betiği yeniden çalıştırın.
 
@@ -163,11 +165,11 @@ Betik Laragon altındaki PHP sürümlerini sınar ve Artisan'ı çalıştırabil
 
 ### Windows betiği engelliyor
 
-`INSTALL.bat`, PowerShell'i yalnızca bu çalıştırma için `ExecutionPolicy Bypass` ile açar. Kurumsal bir politika bunu da engelliyorsa sistem yöneticisinin izin verdiği terminalden `setup-ai-context.ps1` dosyasını çalıştırın.
+`Windows/TR/INSTALL.bat`, PowerShell'i yalnızca bu çalıştırma için `ExecutionPolicy Bypass` ile açar. Kurumsal bir politika bunu da engelliyorsa sistem yöneticisinin izin verdiği terminalden `setup-ai-context.ps1` dosyasını çalıştırın.
 
 ### Graf güncel görünmüyor
 
-Windows Görev Zamanlayıcı'da `Graphify-<proje-kimligi>-Watch` görevinin çalıştığını kontrol edin. `CHECK_STATUS.bat` bu adı otomatik hesaplar. Manuel yenileme için proje klasöründe şunu çalıştırabilirsiniz:
+Windows Görev Zamanlayıcı'da `Graphify-<proje-kimligi>-Watch` görevinin çalıştığını kontrol edin. `Windows/TR/CHECK_STATUS.bat` bu adı otomatik hesaplar. Manuel yenileme için proje klasöründe şunu çalıştırabilirsiniz:
 
 ```powershell
 graphify update .

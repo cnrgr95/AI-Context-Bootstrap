@@ -2,6 +2,12 @@
 
 All notable changes follow semantic versioning.
 
+## 2.1.0 - 2026-09-12
+
+- Organized entry points into separate Windows, Linux, and macOS folders, each with English and Turkish options.
+- Made the root README English and added a clear platform/language selection table.
+- Updated launchers, guides, and smoke tests for the new paths.
+
 ## 2.0.0 - 2026-09-12
 
 - Added native Linux and macOS installation and status scripts.

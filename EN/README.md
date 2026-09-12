@@ -1,5 +1,7 @@
 # AI Context Bootstrap
 
+Choose your platform: [Windows](../Windows/EN/README.md) · [Linux](../Linux/EN/README.md) · [macOS](../macOS/EN/README.md).
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Platforms](https://img.shields.io/badge/Windows%20%7C%20Linux%20%7C%20macOS-supported-0078D4)](GUIDE.md#requirements)
 
@@ -23,10 +25,10 @@ One-command, project-scoped setup for **Codex local clients**, **Codex Cloud**, 
 ## Quick start
 
 1. Download and extract the latest release ZIP.
-2. On Windows, drag your project folder onto `INSTALL.bat`. On Linux or macOS, run `bash INSTALL_LINUX_MACOS.sh /path/to/project`.
+2. On Windows, drag your project folder onto `Windows/EN/INSTALL.bat`. On Linux, run `bash Linux/EN/INSTALL.sh /path/to/project`. On macOS, run `bash macOS/EN/INSTALL.sh /path/to/project`.
 3. Choose **Minimal** for the smallest MCP tool context.
 4. Restart your AI editor or refresh its MCP list.
-5. On Windows, drag the project onto `CHECK_STATUS.bat`; on Linux/macOS run `bash CHECK_STATUS_LINUX_MACOS.sh /path/to/project` to verify the installation.
+5. Verify with the status checker in your platform/language folder.
 6. Commit the generated `.codex/cloud` directory when the repository will be used with Codex Cloud.
 
 For Codex Cloud, set the environment scripts to:
