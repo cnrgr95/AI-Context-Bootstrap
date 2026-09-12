@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  powershell-syntax:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell scripts
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $failed = $true
+              $errors | ForEach-Object { Write-Error "$($_.Extent.File):$($_.Extent.StartLineNumber) $($_.Message)" }
+            }
+          }
+          if ($failed) { exit 1 }
+
+      - name: Reject machine-specific or secret material
+        shell: pwsh
+        run: |
+          $patterns = @('C:\\Users\\[^<]', 'BEGIN (RSA|OPENSSH|EC) PRIVATE KEY', 'sk-[A-Za-z0-9]{20,}')
+          $files = Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch '\\.git\\' }
+          foreach ($pattern in $patterns) {
+            $matches = $files | Select-String -Pattern $pattern
+            if ($matches) { $matches; exit 1 }
+          }
