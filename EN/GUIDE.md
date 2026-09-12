@@ -48,6 +48,28 @@ After installation, restart the editor or refresh its MCP list:
 
 The installer creates a uniquely named scheduled task based on the normalized project path. It starts at user logon, runs on battery power, prevents duplicate instances, and restarts after transient failures. Graphify's Git hooks cover commits and branch switches.
 
+## Codex Cloud
+
+The installer writes `.codex/cloud/setup.sh`, `maintenance.sh`, `query.sh`, and a short README into the target repository. Commit these files, then configure the repository's Codex Cloud environment:
+
+```bash
+# Setup script
+bash .codex/cloud/setup.sh
+
+# Maintenance script
+bash .codex/cloud/maintenance.sh
+```
+
+The setup phase installs Graphify and builds a code-only graph. The maintenance phase refreshes it when Codex resumes a cached container. Cloud tasks do not use the Windows watcher or Windows executable paths.
+
+For cross-module questions when a local MCP server is unavailable, the generated `AGENTS.md` tells Codex to run:
+
+```bash
+bash .codex/cloud/query.sh "Which modules handle authentication?"
+```
+
+The helper caps output at 800 tokens by default. Pass a second numeric argument only when the task needs a larger result. You can override the selected profile with the `AI_CONTEXT_PROFILE` environment variable.
+
 ## Troubleshooting
 
 ### Graphify executable is locked

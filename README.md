@@ -11,9 +11,9 @@ Choose your language / Dilinizi seçin:
 | 🇹🇷 Türkçe | [TR/README.md](TR/README.md) | `TR\INSTALL.bat` |
 | 🇬🇧 English | [EN/README.md](EN/README.md) | `EN\INSTALL.bat` |
 
-The shared PowerShell automation engine stays in the repository root. Both language folders provide their own README, detailed guide, agent prompt, installer, and status checker.
+The shared PowerShell automation engine stays in the repository root. Both language folders provide their own README, detailed guide, agent prompt, installer, and status checker. The installer also generates Linux scripts for Codex Cloud under `.codex/cloud` in every target project.
 
-Ortak PowerShell otomasyon motoru depo kökünde bulunur. Her dil klasöründe ayrı README, ayrıntılı kılavuz, ajan promptu, kurucu ve durum denetleyicisi vardır.
+Ortak PowerShell otomasyon motoru depo kökünde bulunur. Her dil klasöründe ayrı README, ayrıntılı kılavuz, ajan promptu, kurucu ve durum denetleyicisi vardır. Kurucu ayrıca her hedef projede `.codex/cloud` altında Codex Cloud için Linux betikleri oluşturur.
 
 ## Quick start / Hızlı başlangıç
 

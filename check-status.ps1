@@ -13,6 +13,7 @@ $checks = [ordered]@{
     Graph = Test-Path -LiteralPath $graph -PathType Leaf
     CursorMcp = Test-Path -LiteralPath (Join-Path $project '.cursor\mcp.json') -PathType Leaf
     CodexMcp = Test-Path -LiteralPath (Join-Path $project '.codex\config.toml') -PathType Leaf
+    CodexCloud = Test-Path -LiteralPath (Join-Path $project '.codex\cloud\setup.sh') -PathType Leaf
     AntigravityMcp = Test-Path -LiteralPath (Join-Path $project '.agents\mcp_config.json') -PathType Leaf
     GraphifyCommand = Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.local\bin\graphify.exe') -PathType Leaf
 }

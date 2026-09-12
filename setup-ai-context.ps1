@@ -146,9 +146,18 @@ try {
     if (-not (Test-Path $graphify) -or -not (Test-Path $graphifyMcp)) { throw 'Graphify calistirilabilir dosyalari bulunamadi.' }
 
     Add-UniqueLines '.graphifyignore' @('vendor/','node_modules/','public/build/','public/storage/','storage/','graphify-out/','.env*','*.key','*.pem','*.dump','*.sql','*.sql.enc')
-    Add-UniqueLines '.gitignore' @('/graphify-out/')
-    New-Item -ItemType Directory -Force '.cursor','.codex','.agents\rules' | Out-Null
+    Add-UniqueLines '.gitignore' @('/graphify-out/','!/.codex/','/.codex/*','!/.codex/cloud/','!/.codex/cloud/**')
+    New-Item -ItemType Directory -Force '.cursor','.codex','.codex\cloud','.agents\rules' | Out-Null
     Add-UniqueLines '.cursorignore' @('/vendor/','/node_modules/','/graphify-out/','/public/build/','/public/storage/','/storage/logs/','.env','.env.*','*.key','*.pem','*.dump','*.sql')
+    $cloudTemplateDirectory = Join-Path $PSScriptRoot 'cloud'
+    foreach ($cloudFile in @('setup.sh','maintenance.sh','query.sh','README.md')) {
+        $source = Join-Path $cloudTemplateDirectory $cloudFile
+        if (-not (Test-Path -LiteralPath $source)) { throw "Missing Codex Cloud template: $source" }
+        $content = Get-Content -LiteralPath $source -Raw -Encoding utf8
+        $content = $content.Replace('__DEFAULT_PROFILE__', $ContextProfile)
+        $destination = Join-Path '.codex\cloud' $cloudFile
+        [System.IO.File]::WriteAllText($destination, $content, [System.Text.UTF8Encoding]::new($false))
+    }
 
     & $graphify extract . --code-only --no-cluster
     if ($LASTEXITCODE -ne 0) { throw "Graf olusturma basarisiz: $LASTEXITCODE" }
@@ -204,12 +213,12 @@ try {
 
     $rule = @'
 # Efficient context
-Start with files or modules named by the user. Search narrowly and expand only when evidence requires it. Use the local Graphify MCP first for cross-module dependency questions; verify its results against current source. Small named-file tasks do not require a graph query. Preserve unrelated changes, use focused diffs, and run the narrowest relevant checks. Never add secrets, dumps, dependency folders, or generated output to model context.
+Start with files or modules named by the user. Search narrowly and expand only when evidence requires it. Use the local Graphify MCP first for cross-module dependency questions; in Codex Cloud, use `bash .codex/cloud/query.sh "question"` when MCP is unavailable and keep the default 800-token budget unless more detail is needed. Verify graph results against current source. Small named-file tasks do not require a graph query. Preserve unrelated changes, use focused diffs, and run the narrowest relevant checks. Never add secrets, dumps, dependency folders, or generated output to model context.
 '@
     Set-Content -LiteralPath '.agents\rules\efficient-context.md' -Value $rule -Encoding utf8
     Set-MarkedSection 'AGENTS.md' 'AI-CONTEXT-BOOTSTRAP' '## Efficient agent context
 
-Start with files or modules named by the user and search narrowly. Use the local Graphify MCP for cross-module dependency questions, then verify results against current source. Small named-file tasks do not need Graphify. Preserve unrelated changes, prefer focused diffs, and run the narrowest relevant checks. Keep secrets, dumps, dependencies, and generated output out of model context.'
+Start with files or modules named by the user and search narrowly. Use the local Graphify MCP for cross-module dependency questions. In Codex Cloud, use `bash .codex/cloud/query.sh "question"` when MCP is unavailable and keep the default 800-token budget unless more detail is needed. Verify graph results against current source. Small named-file tasks do not need Graphify. Preserve unrelated changes, prefer focused diffs, and run the narrowest relevant checks. Keep secrets, dumps, dependencies, and generated output out of model context.'
 
     if (-not $NoWatcher) {
         $taskName = "Graphify-$projectId-Watch"
@@ -227,6 +236,7 @@ Start with files or modules named by the user and search narrowly. Use the local
     Write-Host "Project ID: $projectId"
     Write-Host "Context profile: $ContextProfile"
     Write-Host "Graph: $(Join-Path $project 'graphify-out\graph.json')"
+    Write-Host 'Codex Cloud: commit .codex/cloud, then configure its setup and maintenance scripts.'
     if (-not $NoWatcher) { Write-Host "Watcher: Graphify-$projectId-Watch" }
     Write-Host 'Codex, Cursor ve Antigravity uygulamalarini yeniden baslatin veya MCP listesini yenileyin.'
 } finally {

@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)](https://www.microsoft.com/windows)
 
-One-command, project-scoped setup for **Codex**, **Cursor**, and **Google Antigravity**. It builds a local Graphify code graph, connects MCP clients, filters noisy files, and keeps the graph current automatically.
+One-command, project-scoped setup for **Codex local clients**, **Codex Cloud**, **Cursor**, and **Google Antigravity**. It builds a local Graphify code graph, connects supported MCP clients, filters noisy files, and keeps the graph current automatically.
 
 > This project reduces avoidable context usage. It cannot guarantee a fixed token reduction because usage depends on the model, task, chat history, and enabled tools.
 
@@ -18,6 +18,7 @@ One-command, project-scoped setup for **Codex**, **Cursor**, and **Google Antigr
 - Keeps the graph current with Git hooks and a per-project Windows watcher.
 - Uses stable managed markers, so running the installer again repairs the setup without duplicating rules.
 - Provides a read-only status checker.
+- Generates Linux setup, maintenance, and token-limited query helpers for Codex Cloud.
 
 ## Quick start
 
@@ -26,6 +27,16 @@ One-command, project-scoped setup for **Codex**, **Cursor**, and **Google Antigr
 3. Choose **Minimal** for the smallest MCP tool context.
 4. Restart your AI editor or refresh its MCP list.
 5. Drag the same project onto `CHECK_STATUS.bat` to verify the installation.
+6. Commit the generated `.codex/cloud` directory when the repository will be used with Codex Cloud.
+
+For Codex Cloud, set the environment scripts to:
+
+```bash
+bash .codex/cloud/setup.sh
+bash .codex/cloud/maintenance.sh
+```
+
+The second command belongs in the optional maintenance-script field. See the [Codex Cloud section](GUIDE.md#codex-cloud) for details.
 
 PowerShell usage:
 
@@ -66,6 +77,9 @@ The installer may create or update:
 .mcp.json
 AGENTS.md
 graphify-out/graph.json
+.codex/cloud/setup.sh
+.codex/cloud/maintenance.sh
+.codex/cloud/query.sh
 ```
 
 Existing MCP JSON objects are merged. The Codex and AGENTS sections use explicit managed markers. Review changes before committing them.

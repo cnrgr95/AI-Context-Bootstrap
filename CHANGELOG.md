@@ -2,6 +2,13 @@
 
 All notable changes follow semantic versioning.
 
+## 1.3.0 - 2026-09-12
+
+- Added Codex Cloud setup, maintenance, and token-limited Graphify query scripts.
+- Made the Windows installer generate a project-scoped .codex/cloud bundle automatically.
+- Added Codex Cloud readiness to the status report and agent guidance.
+- Documented the required Codex Cloud environment settings in Turkish and English.
+
 ## 1.2.0 - 2026-09-12
 
 - Separated all Turkish and English user-facing files into `TR` and `EN` directories.

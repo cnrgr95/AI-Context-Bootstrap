@@ -11,3 +11,5 @@ The installer executes local package-manager commands and updates configuration 
 The generated ignore files reduce accidental context inclusion but are not access-control boundaries. MCP clients and terminal tools may still access files according to their own permissions. Keep secrets outside repositories and use operating-system permissions and secret managers.
 
 Supported security updates apply to the latest release.
+
+Codex Cloud installs Graphify during the environment setup phase. Keep agent-phase internet access disabled unless the project requires it. When access is required, use the narrowest domain and HTTP-method allowlist that supports the task.

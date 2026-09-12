@@ -73,6 +73,28 @@ Kurulum, proje adı ve yolundan türetilen benzersiz `Graphify-<proje-kimligi>-W
 
 Git hook'ları da commit ve dal değişimlerinde grafı yeniler. Güncellemeler yerel AST analiziyle yapılır.
 
+## Codex Cloud
+
+Kurucu hedef projeye `.codex/cloud/setup.sh`, `maintenance.sh`, `query.sh` ve kısa bir README yazar. Bu dosyaları commit ettikten sonra deponun Codex Cloud ortamında şu değerleri kullanın:
+
+```bash
+# Kurulum betiği
+bash .codex/cloud/setup.sh
+
+# Bakım betiği
+bash .codex/cloud/maintenance.sh
+```
+
+Kurulum aşaması Graphify'ı yükleyip yalnızca kod içeren grafı oluşturur. Bakım aşaması önbellekteki konteyner yeniden kullanıldığında grafı günceller. Bulut görevleri Windows watcher veya Windows çalıştırılabilir dosya yollarını kullanmaz.
+
+Yerel MCP sunucusu bulunmadığında modüller arası sorular için oluşturulan `AGENTS.md`, Codex'e şu komutu kullanmasını söyler:
+
+```bash
+bash .codex/cloud/query.sh "Kimlik doğrulamayı hangi modüller yönetiyor?"
+```
+
+Yardımcı varsayılan olarak çıktıyı 800 token ile sınırlar. Daha büyük sonuç gerektiğinde ikinci sayısal argüman verilebilir. Seçilen profil Codex Cloud ortamındaki `AI_CONTEXT_PROFILE` değişkeniyle geçersiz kılınabilir.
+
 ## Yeniden çalıştırma ve onarım
 
 Aynı proje için `INSTALL.bat` tekrar çalıştırılabilir. Betik mevcut JSON ayarlarını silmez; ilgili MCP kayıtlarını ekler veya günceller. Eksik grafı, kuralları ve otomasyon görevini yeniden oluşturur.
