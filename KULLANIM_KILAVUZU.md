@@ -31,6 +31,16 @@ Kod grafı `--code-only` seçeneğiyle yerel olarak oluşturulur. Kaynak kodun i
 3. Açılan terminalde işlemlerin tamamlanmasını bekleyin.
 4. Codex, Cursor ve Antigravity'yi yeniden başlatın veya MCP listesini yenileyin.
 
+## Bağlam profilleri
+
+| Profil | İçerik | Önerilen kullanım |
+|---|---|---|
+| Minimal | Beş temel Graphify aracı; kurulumun yönettiği Laravel Boost kayıtlarını kaldırır | Günlük görevler ve en düşük MCP araç bağlamı |
+| Dengeli | Mimari Graphify araçları, yerel topluluk haritası ve varsa Laravel Boost | Laravel geliştirme ve modüller arası çalışmalar |
+| Tam | Tüm Graphify araçları, topluluk haritası ve varsa Laravel Boost | PR analizi ve bütün araçların gerektiği özel oturumlar |
+
+Profil daha sonra değiştirilebilir. `INSTALL_TR.bat` dosyasını yeniden çalıştırıp yeni profili seçmeniz yeterlidir.
+
 Alternatif olarak `INSTALL_OR_REPAIR.bat` dosyasına çift tıklayın ve istenen alana projenin tam yolunu yazın:
 
 ```text

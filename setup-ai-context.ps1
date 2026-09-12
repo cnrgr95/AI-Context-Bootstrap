@@ -2,6 +2,8 @@
 param(
     [Parameter(Mandatory = $true)]
     [string] $ProjectPath,
+    [ValidateSet('Minimal','Balanced','Full')]
+    [string] $ContextProfile = 'Minimal',
     [switch] $SkipLaravelBoost,
     [switch] $NoWatcher
 )
@@ -43,6 +45,16 @@ function Set-McpServer([string] $Path, [string] $Name, $Definition) {
     Write-JsonFile $Path $config
 }
 
+function Remove-McpServer([string] $Path, [string] $Name, [string] $ExpectedCwd = '') {
+    if (-not (Test-Path -LiteralPath $Path) -or (Get-Item -LiteralPath $Path).Length -eq 0) { return }
+    $config = Read-McpConfig $Path
+    $property = $config.mcpServers.PSObject.Properties[$Name]
+    if (-not $property) { return }
+    if ($ExpectedCwd -and $property.Value.cwd -and $property.Value.cwd -ne $ExpectedCwd) { return }
+    $config.mcpServers.PSObject.Properties.Remove($Name)
+    Write-JsonFile $Path $config
+}
+
 function Add-UniqueLines([string] $Path, [string[]] $Lines) {
     $existing = if (Test-Path -LiteralPath $Path) { Get-Content -LiteralPath $Path -Encoding utf8 } else { @() }
     $missing = $Lines | Where-Object { $_ -notin $existing }
@@ -52,12 +64,13 @@ function Add-UniqueLines([string] $Path, [string[]] $Lines) {
     }
 }
 
-function Set-CodexMcpServer([string] $Path, [string] $Name, [string] $Command, [string[]] $Args, [string] $Cwd) {
+function Set-CodexMcpServer([string] $Path, [string] $Name, [string] $Command, [string[]] $Args, [string] $Cwd, [string[]] $EnabledTools = @()) {
     $text = if (Test-Path $Path) { Get-Content $Path -Raw -Encoding utf8 } else { '' }
     $start = "# BEGIN AI-CONTEXT-BOOTSTRAP $($Name.ToUpperInvariant())"
     $end = "# END AI-CONTEXT-BOOTSTRAP $($Name.ToUpperInvariant())"
     $tomlArgs = ($Args | ForEach-Object { '"' + $_.Replace('\','\\').Replace('"','\"') + '"' }) -join ', '
-    $block = "$start`r`n[mcp_servers.$Name]`r`ncommand = `"$($Command.Replace('\','\\'))`"`r`nargs = [$tomlArgs]`r`ncwd = `"$($Cwd.Replace('\','\\'))`"`r`nstartup_timeout_sec = 20`r`ntool_timeout_sec = 60`r`n$end"
+    $toolLine = if ($EnabledTools.Count -gt 0) { "`r`nenabled_tools = [" + (($EnabledTools | ForEach-Object { '"' + $_ + '"' }) -join ', ') + ']' } else { '' }
+    $block = "$start`r`n[mcp_servers.$Name]`r`ncommand = `"$($Command.Replace('\','\\'))`"`r`nargs = [$tomlArgs]`r`ncwd = `"$($Cwd.Replace('\','\\'))`"`r`nstartup_timeout_sec = 20`r`ntool_timeout_sec = 60$toolLine`r`n$end"
     $markedPattern = "(?s)$([regex]::Escape($start)).*?$([regex]::Escape($end))"
     if ($text -match $markedPattern) {
         $text = [regex]::Replace($text, $markedPattern, $block)
@@ -65,6 +78,16 @@ function Set-CodexMcpServer([string] $Path, [string] $Name, [string] $Command, [
         $tablePattern = "(?ms)^\[mcp_servers\.$([regex]::Escape($Name))\]\r?\n.*?(?=^\[|\z)"
         $text = [regex]::Replace($text, $tablePattern, '').TrimEnd() + "`r`n`r`n" + $block + "`r`n"
     }
+    Set-Content -LiteralPath $Path -Value $text -Encoding utf8
+}
+
+function Remove-CodexMcpServer([string] $Path, [string] $Name) {
+    if (-not (Test-Path $Path)) { return }
+    $text = Get-Content $Path -Raw -Encoding utf8
+    $start = "# BEGIN AI-CONTEXT-BOOTSTRAP $($Name.ToUpperInvariant())"
+    $end = "# END AI-CONTEXT-BOOTSTRAP $($Name.ToUpperInvariant())"
+    $pattern = "(?s)\r?\n?$([regex]::Escape($start)).*?$([regex]::Escape($end))\r?\n?"
+    $text = [regex]::Replace($text, $pattern, "`r`n").Trim() + "`r`n"
     Set-Content -LiteralPath $Path -Value $text -Encoding utf8
 }
 
@@ -129,17 +152,34 @@ try {
 
     & $graphify extract . --code-only --no-cluster
     if ($LASTEXITCODE -ne 0) { throw "Graf olusturma basarisiz: $LASTEXITCODE" }
+    if ($ContextProfile -ne 'Minimal') {
+        & $graphify cluster-only . --no-label --no-viz
+        if ($LASTEXITCODE -ne 0) { throw "Graph clustering failed: $LASTEXITCODE" }
+    }
     & $graphify hook install
 
+    $graphDisabledTools = switch ($ContextProfile) {
+        'Minimal' { @('get_community','god_nodes','list_prs','get_pr_impact','triage_prs') }
+        'Balanced' { @('list_prs','get_pr_impact','triage_prs') }
+        default { @() }
+    }
+    $graphEnabledTools = switch ($ContextProfile) {
+        'Minimal' { @('query_graph','get_node','get_neighbors','shortest_path','graph_stats') }
+        'Balanced' { @('query_graph','get_node','get_neighbors','get_community','god_nodes','shortest_path','graph_stats') }
+        default { @() }
+    }
     $graphDefinition = [pscustomobject]@{ command = $graphifyMcp; args = @((Join-Path $project 'graphify-out\graph.json')); cwd = $project }
+    $antigravityGraphDefinition = [pscustomobject]@{ command = $graphifyMcp; args = @((Join-Path $project 'graphify-out\graph.json')); cwd = $project; disabledTools = $graphDisabledTools }
     Set-McpServer '.mcp.json' 'graphify' $graphDefinition
     Set-McpServer '.cursor\mcp.json' 'graphify' $graphDefinition
-    Set-McpServer '.agents\mcp_config.json' 'graphify' $graphDefinition
-    Set-McpServer (Join-Path $userHomePath '.gemini\config\mcp_config.json') "graphify-$projectId" $graphDefinition
+    Remove-McpServer '.agents\mcp_config.json' 'graphify' $project
+    Set-McpServer '.agents\mcp_config.json' "graphify-$projectId" $antigravityGraphDefinition
+    Set-McpServer (Join-Path $userHomePath '.gemini\config\mcp_config.json') "graphify-$projectId" $antigravityGraphDefinition
 
-    Set-CodexMcpServer '.codex\config.toml' 'graphify' $graphifyMcp @((Join-Path $project 'graphify-out\graph.json')) $project
+    Set-CodexMcpServer '.codex\config.toml' 'graphify' $graphifyMcp @((Join-Path $project 'graphify-out\graph.json')) $project $graphEnabledTools
 
-    if ((Test-Path 'artisan') -and -not $SkipLaravelBoost) {
+    $boostConfigured = $false
+    if ((Test-Path 'artisan') -and -not $SkipLaravelBoost -and $ContextProfile -ne 'Minimal') {
         $php = Find-CompatiblePhp
         if ($php) {
             $commands = & $php artisan list --raw 2>$null
@@ -150,8 +190,16 @@ try {
                 Set-McpServer '.agents\mcp_config.json' 'laravel-boost' $boostDefinition
                 Set-McpServer (Join-Path $userHomePath '.gemini\config\mcp_config.json') "laravel-boost-$projectId" $boostDefinition
                 Set-CodexMcpServer '.codex\config.toml' 'laravel-boost' $php @('artisan','boost:mcp') $project
+                $boostConfigured = $true
             }
         }
+    }
+    if (-not $boostConfigured) {
+        Remove-McpServer '.mcp.json' 'laravel-boost' $project
+        Remove-McpServer '.cursor\mcp.json' 'laravel-boost' $project
+        Remove-McpServer '.agents\mcp_config.json' 'laravel-boost' $project
+        Remove-McpServer (Join-Path $userHomePath '.gemini\config\mcp_config.json') "laravel-boost-$projectId" $project
+        Remove-CodexMcpServer '.codex\config.toml' 'laravel-boost'
     }
 
     $rule = @'
@@ -177,6 +225,7 @@ Start with files or modules named by the user and search narrowly. Use the local
     & $uv tool update-shell | Out-Null
     Write-Host "Hazir: $project" -ForegroundColor Green
     Write-Host "Project ID: $projectId"
+    Write-Host "Context profile: $ContextProfile"
     Write-Host "Graph: $(Join-Path $project 'graphify-out\graph.json')"
     if (-not $NoWatcher) { Write-Host "Watcher: Graphify-$projectId-Watch" }
     Write-Host 'Codex, Cursor ve Antigravity uygulamalarini yeniden baslatin veya MCP listesini yenileyin.'

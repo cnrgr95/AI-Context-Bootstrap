@@ -16,6 +16,14 @@ Drag a project directory onto `INSTALL_OR_REPAIR.bat`, or run:
 powershell -ExecutionPolicy Bypass -File .\setup-ai-context.ps1 -ProjectPath "C:\projects\my-app"
 ```
 
+Choose a context profile explicitly when needed:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup-ai-context.ps1 -ProjectPath "C:\projects\my-app" -ContextProfile Minimal
+```
+
+`Minimal` exposes five core Graphify tools and removes installer-managed Laravel Boost entries. `Balanced` adds architectural graph tools and Laravel Boost. `Full` exposes the complete Graphify tool set and Laravel Boost. Balanced and Full also build local graph communities without an LLM.
+
 The operation is designed to be repeatable. It merges MCP JSON configuration and replaces only its marked Codex and AGENTS sections.
 
 ## Verify

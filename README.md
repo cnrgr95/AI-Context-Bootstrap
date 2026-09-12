@@ -22,9 +22,10 @@ One-command, project-scoped setup for **Codex**, **Cursor**, and **Google Antigr
 ## Quick start
 
 1. Download and extract the latest release ZIP.
-2. Drag your project folder onto `INSTALL_OR_REPAIR.bat`.
-3. Restart your AI editor or refresh its MCP list.
-4. Drag the same project onto `CHECK_STATUS.bat` to verify the installation.
+2. Drag your project folder onto `INSTALL_EN.bat` (or use `INSTALL_TR.bat` for Turkish).
+3. Choose **Minimal** for the smallest MCP tool context.
+4. Restart your AI editor or refresh its MCP list.
+5. Drag the same project onto `CHECK_STATUS.bat` to verify the installation.
 
 PowerShell usage:
 
@@ -38,6 +39,16 @@ Optional switches:
 -SkipLaravelBoost  # Do not configure Laravel Boost
 -NoWatcher         # Do not create the Windows logon watcher
 ```
+
+## Context profiles
+
+| Profile | Enabled scope | Best for |
+|---|---|---|
+| Minimal | Five core Graphify tools | Lowest MCP catalog overhead; default and recommended |
+| Balanced | Architectural Graphify tools and Laravel Boost | Laravel implementation and architecture work |
+| Full | All Graphify tools and Laravel Boost | PR analysis and sessions requiring every capability |
+
+Cursor stores individual tool toggles in its UI. For the smallest context, disable unused tools under **Customize → MCPs**; disabled tools are not loaded into Agent context.
 
 ## What changes in the target project
 
@@ -68,6 +79,7 @@ The installer downloads `uv` through WinGet and installs `graphifyy` from PyPI. 
 ## Documentation
 
 - [English guide](docs/GUIDE.md)
+- [Türkçe README](README_TR.md)
 - [Türkçe kullanım kılavuzu](KULLANIM_KILAVUZU.md)
 - [Agent-driven installation prompt](AGENT_PROMPT_TR.md)
 - [Contributing](CONTRIBUTING.md)
