@@ -28,7 +28,7 @@ Token tasarrufu göreve ve modele bağlıdır; sabit bir oran garanti edilmez. [
 
 ## MCP araç izinleri ve kapsam
 
-Kurucu, projeye özel `.codex/graphify-mcp-proxy.py` filtresini oluşturur. Minimal (5), Balanced (7) ve Full (10) profilleri Codex, Cursor ve Antigravity/Gemini istemcilerinde MCP `tools/list` ve `tools/call` seviyesinde uygulanır. Graphify `project_path` parametresiyle başka bir proje sorgulanamaz. Filtre **işletim sistemi güvenlik sandbox'ı değildir**: Graphify süreci ve AI ajanının terminal/dosya izinleri ayrıca sınırlandırılmalıdır. Profil değiştirildiğinde kurulumu yeniden çalıştırın.
+Kurucu, projeden bağımsız kullanıcı dizininde güvenilir `graphify-mcp-proxy.py` dosyasını oluşturur. Minimal (5), Balanced (7) ve Full (10) profilleri Codex, Cursor ve Antigravity/Gemini istemcilerinde MCP `tools/list` ve `tools/call` seviyesinde uygulanır. Graphify `project_path` parametresiyle başka bir proje sorgulanamaz. Filtre **işletim sistemi güvenlik sandbox'ı değildir**: Graphify süreci ve AI ajanının terminal/dosya izinleri ayrıca sınırlandırılmalıdır. Profil değiştirildiğinde kurulumu yeniden çalıştırın.
 
 ## Güvenli kurulum tercihleri
 
@@ -37,3 +37,7 @@ Laravel Boost ve Git hook kurulumu varsayılan olarak **kapalıdır**. Boost; Ar
 ## Hata kurtarma
 
 Kurulum başlamadan önce mevcut MCP, Codex, Gemini ve ajan yapılandırmaları geçici olarak yedeklenir; hata durumunda bu dosyalar geri yüklenir. Paket kurulumları, graf çıktıları ve önceden kurulu servisler geri alma kapsamına dahil değildir. Başka projeye ait MCP sunucu çakışmalarında kurulum kullanıcı dosyasını değiştirmeden hata verir. Kullanıcıya ait mevcut kurulumları silmek için otomatik işlem yapılmaz.
+
+## Bağımlılık ve doğrulama
+
+Yeni Graphify kurulumlarında test edilmiş `graphifyy==0.9.94` kullanılır. Önceden kurulmuş Graphify sürümü otomatik değiştirilmez; sürüm uyumluluğu ayrıca doğrulanmalıdır. MCP filtresinin çalıştırılabilir kopyası Unix sistemlerde `~/.local/share/ai-context-bootstrap/<project-id>/`, Windows'ta LocalAppData içindeki `AI-Context-Bootstrap/<project-id>/` dizinindedir; proje içindeki koddan çalıştırılmaz. CI gerçek Graphify MCP entegrasyonunu, sentetik protokol testlerini ve kurulum mock testlerini çalıştırır. Gerçek editör kullanıcı arayüzü ve uçtan uca Windows kurucusu ayrıca doğrulanmalıdır.

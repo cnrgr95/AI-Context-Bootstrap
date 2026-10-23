@@ -25,3 +25,7 @@ Laravel Boost and Git hook installation are now explicit opt-ins. Running Larave
 ## Setup rollback boundaries
 
 The installers snapshot tracked project and global Gemini configuration files and restore them when setup fails. Package-manager changes, graph output, hooks and already-created services are outside the rollback scope. MCP server-name conflicts are not overwritten. Watchers require explicit opt-in. This does not make the MCP proxy an OS-level sandbox.
+
+## Trusted executable placement and dependency version
+
+MCP server configuration invokes a per-user proxy installation outside the selected source repository, so source changes alone cannot modify the executable it runs. Configuration and project files should still be treated as untrusted; the installer itself runs with user privileges. Newly installed Graphify dependencies are pinned to validated version 0.9.94, but preexisting installations are preserved, not transparently downgraded. Large stdio messages and outstanding list requests are bounded. These measures are defense in depth, not formal proof of safety or complete crash recovery.

@@ -4,6 +4,12 @@ All notable changes follow semantic versioning.
 
 ## Unreleased
 
+- Correct Codex TOML collision regex and prevent configuration-dir symlink redirection.
+- Execute MCP proxy from a private user-managed location instead of project-controlled code.
+- Protect MCP stdio against oversized messages, repeated pending requests and backend-initiated RPC.
+- Harden temporary configuration writes and reject unrelated same-project MCP server definitions.
+- Validate real Graphify MCP extraction/handshake on supported CI operating systems with a tested 0.9.94 dependency.
+
 - Add configuration rollback and server-collision safeguards across supported installers.
 - Make background watchers opt-in and block non-tool MCP methods.
 - Add simulated Unix failure-injection regression tests for rollback and third-party MCP preservation.
