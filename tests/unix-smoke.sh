@@ -48,9 +48,12 @@ assert (root/".codex/config.toml").read_text().count("[mcp_servers.graphify]") =
 assert "[mcp_servers.other]" in (root/".codex/config.toml").read_text()
 assert (root/"AGENTS.md").read_text().count("<!-- BEGIN AI-CONTEXT-BOOTSTRAP -->") == 1
 assert "Minimal" in (root/".codex/cloud/setup.sh").read_text()
-assert (root/".codex/graphify-mcp-proxy.py").is_file()
+assert not (root/".codex/graphify-mcp-proxy.py").exists()
 config = json.loads((root/".cursor/mcp.json").read_text())["mcpServers"]["graphify"]
 assert "graphify-mcp-proxy.py" in config["args"][0]
+assert pathlib.Path(config["args"][0]).is_file()
+assert not pathlib.Path(config["args"][0]).is_relative_to(root)
+assert (pathlib.Path(config["args"][0]).parent.stat().st_mode & 0o077) == 0
 assert config["args"][-2] == "Minimal"
 assert "laravel-boost" not in json.loads((root/".mcp.json").read_text())["mcpServers"]
 assert len(json.loads((home/".gemini/config/mcp_config.json").read_text())["mcpServers"]) == 1
@@ -70,13 +73,18 @@ for language in EN TR; do
     fi
   done
 done
-cp "$temp/project/.codex/graphify-mcp-proxy.py" "$temp/proxy-backup"
-rm "$temp/project/.codex/graphify-mcp-proxy.py"
+trusted_proxy="$(python3 - "$temp/project/.cursor/mcp.json" <<'PY'
+import json,sys
+print(json.load(open(sys.argv[1]))["mcpServers"]["graphify"]["args"][0])
+PY
+)"
+cp "$trusted_proxy" "$temp/proxy-backup"
+rm "$trusted_proxy"
 if bash "$repo/EN/Linux/check-status.sh" "$temp/project" >/dev/null 2>&1; then
   echo "Status checker ignored missing MCP proxy." >&2
   exit 1
 fi
-cp "$temp/proxy-backup" "$temp/project/.codex/graphify-mcp-proxy.py"
+cp "$temp/proxy-backup" "$trusted_proxy"
 # A failed re-install must roll back user configuration.
 cp "$temp/project/.mcp.json" "$temp/snapshot-mcp"
 cp "$temp/project/.codex/config.toml" "$temp/snapshot-toml"
