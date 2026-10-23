@@ -49,13 +49,13 @@ graphify_mcp_bin="$(command -v graphify-mcp)"
 
 # Reject directory symlinks/junction-like redirections before any project writes.
 # Project-local config must not redirect to paths outside the selected repository.
-python3 - "$project" "$HOME" <<'PY'
+python3 - "$project" "$HOME" "$project_id" <<'PY'
 import sys
 from pathlib import Path
-root, home = [Path(item) for item in sys.argv[1:]]
+root, home, project_id = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
 for base, relatives in [
     (root, (".cursor", ".codex", ".codex/cloud", ".agents", ".agents/rules", "graphify-out")),
-    (home, (".gemini", ".gemini/config", ".local/share", ".local/share/ai-context-bootstrap")),
+    (home, (".gemini", ".gemini/config", ".local/share", ".local/share/ai-context-bootstrap", f".local/share/ai-context-bootstrap/{project_id}")),
 ]:
     for relative in relatives:
         current = base
@@ -67,6 +67,8 @@ for base, relatives in [
                 raise SystemExit(f"Managed directory is not a directory: {current}")
 PY
 cd "$project"
+trusted_proxy_dir="$HOME/.local/share/ai-context-bootstrap/$project_id"
+trusted_proxy="$trusted_proxy_dir/graphify-mcp-proxy.py"
 
 # Preserve user-owned configuration. Restore all tracked files if any later
 # step fails. Backup directory is private (mktemp mode 0700) and removed at exit.
@@ -82,6 +84,7 @@ tracked_paths=(
   "$project/.gitignore"
   "$project/.agents/rules/efficient-context.md"
   "$project/.codex/graphify-mcp-proxy.py"
+  "$trusted_proxy"
   "$project/.codex/cloud/setup.sh"
   "$project/.codex/cloud/query.sh"
   "$project/.codex/cloud/maintenance.sh"
@@ -123,7 +126,9 @@ restore_on_exit() {
 }
 trap restore_on_exit EXIT
 mkdir -p .cursor .codex/cloud .agents/rules
-cp "$script_root/graphify-mcp-proxy.py" ".codex/graphify-mcp-proxy.py"
+mkdir -p -m 700 "$trusted_proxy_dir"
+chmod 700 "$HOME/.local/share/ai-context-bootstrap" "$trusted_proxy_dir"
+install -m 600 "$script_root/graphify-mcp-proxy.py" "$trusted_proxy"
 python3 - "$project" "$project_id" "$graphify_mcp_bin" "$profile" "$HOME" "$enable_boost" <<'PY'
 import json, os, re, subprocess, sys
 from pathlib import Path
@@ -196,7 +201,7 @@ add_lines(".gitignore", ["/graphify-out/","!/.codex/","/.codex/*","!/.codex/grap
 
 disabled = {"Minimal":["get_community","god_nodes","list_prs","get_pr_impact","triage_prs"],"Balanced":["list_prs","get_pr_impact","triage_prs"],"Full":[]}[profile]
 enabled = {"Minimal":["query_graph","get_node","get_neighbors","shortest_path","graph_stats"],"Balanced":["query_graph","get_node","get_neighbors","get_community","god_nodes","shortest_path","graph_stats"],"Full":[]}[profile]
-base = {"command": sys.executable, "args":[str(root / ".codex/graphify-mcp-proxy.py"), graphify_mcp, str(root / "graphify-out/graph.json"), profile, project], "cwd":project}
+base = {"command": sys.executable, "args":[str(Path(home) / ".local/share/ai-context-bootstrap" / project_id / "graphify-mcp-proxy.py"), graphify_mcp, str(root / "graphify-out/graph.json"), profile, project], "cwd":project}
 set_server(root/".mcp.json", "graphify", base)
 set_server(root/".cursor/mcp.json", "graphify", base)
 set_server(root/".agents/mcp_config.json", f"graphify-{project_id}", {**base,"disabledTools":disabled})
