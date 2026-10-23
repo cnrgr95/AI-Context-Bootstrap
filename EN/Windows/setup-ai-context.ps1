@@ -20,6 +20,23 @@ $sha = [System.Security.Cryptography.SHA256]::Create()
 $pathHash = ([System.BitConverter]::ToString($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($project.ToLowerInvariant())))).Replace('-','').Substring(0,8).ToLowerInvariant()
 $projectId = "$slug-$pathHash"
 $userHomePath = [Environment]::GetFolderPath('UserProfile')
+$trustedProxyDirectory = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) ("AI-Context-Bootstrap\$projectId")
+$trustedProxy = Join-Path $trustedProxyDirectory 'graphify-mcp-proxy.py'
+
+function Assert-SafeManagedPath([string] $Path) {
+    $candidate = [System.IO.Path]::GetFullPath($Path)
+    while ($candidate) {
+        if (Test-Path -LiteralPath $candidate) {
+            $entry = Get-Item -LiteralPath $candidate -Force
+            if (($entry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Refusing redirected configuration path: $candidate"
+            }
+        }
+        $parent = Split-Path -Path $candidate -Parent
+        if (-not $parent -or $parent -eq $candidate) { break }
+        $candidate = $parent
+    }
+}
 
 function Write-JsonFile([string] $Path, $Value) {
     $directory = Split-Path $Path -Parent
@@ -176,6 +193,7 @@ $trackedFiles = @(
     (Join-Path $project '.gitignore'),
     (Join-Path $project '.agents\rules\efficient-context.md'),
     (Join-Path $project '.codex\graphify-mcp-proxy.py'),
+    $trustedProxy,
     (Join-Path $project '.codex\cloud\setup.sh'),
     (Join-Path $project '.codex\cloud\query.sh'),
     (Join-Path $project '.codex\cloud\maintenance.sh'),
@@ -189,6 +207,7 @@ try {
     New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
     for ($index = 0; $index -lt $trackedFiles.Count; $index++) {
         $file = $trackedFiles[$index]
+        Assert-SafeManagedPath $file
         if (Test-Path -LiteralPath $file) {
             $fileInfo = Get-Item -LiteralPath $file -Force
             if ($fileInfo.PSIsContainer -or ($fileInfo.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
@@ -200,6 +219,7 @@ try {
             $backedUp[$index] = $false
         }
     }
+    Assert-SafeManagedPath (Join-Path $project 'graphify-out\graph.json')
     $uv = Find-Uv
     $toolPython = Join-Path $env:APPDATA 'uv\tools\graphifyy\Scripts\python.exe'
     $graphifyReady = $false
@@ -219,7 +239,8 @@ try {
     Add-UniqueLines '.graphifyignore' @('vendor/','node_modules/','public/build/','public/storage/','storage/','graphify-out/','.env*','*.key','*.pem','*.dump','*.sql','*.sql.enc')
     Add-UniqueLines '.gitignore' @('/graphify-out/','!/.codex/','/.codex/*','!/.codex/graphify-mcp-proxy.py','!/.codex/cloud/','!/.codex/cloud/**')
     New-Item -ItemType Directory -Force '.cursor','.codex','.codex\cloud','.agents\rules' | Out-Null
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'graphify-mcp-proxy.py') -Destination '.codex\graphify-mcp-proxy.py' -Force
+    New-Item -ItemType Directory -Force -Path $trustedProxyDirectory | Out-Null
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'graphify-mcp-proxy.py') -Destination $trustedProxy -Force
     Add-UniqueLines '.cursorignore' @('/vendor/','/node_modules/','/graphify-out/','/public/build/','/public/storage/','/storage/logs/','.env','.env.*','*.key','*.pem','*.dump','*.sql')
     $cloudTemplateDirectory = Join-Path $PSScriptRoot 'cloud'
     foreach ($cloudFile in @('setup.sh','maintenance.sh','query.sh','README.md')) {
@@ -252,7 +273,7 @@ try {
         'Balanced' { @('query_graph','get_node','get_neighbors','get_community','god_nodes','shortest_path','graph_stats') }
         default { @() }
     }
-    $proxyArgs = @((Join-Path $project '.codex\graphify-mcp-proxy.py'), $graphifyMcp, (Join-Path $project 'graphify-out\graph.json'), $ContextProfile, $project)
+    $proxyArgs = @($trustedProxy, $graphifyMcp, (Join-Path $project 'graphify-out\graph.json'), $ContextProfile, $project)
     if (-not (Test-Path -LiteralPath $toolPython)) { throw 'Graphify Python interpreter could not be found.' }
     $graphDefinition = [pscustomobject]@{ command = $toolPython; args = $proxyArgs; cwd = $project }
     $antigravityGraphDefinition = [pscustomobject]@{ command = $toolPython; args = $proxyArgs; cwd = $project; disabledTools = $graphDisabledTools }
