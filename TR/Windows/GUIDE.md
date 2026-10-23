@@ -12,11 +12,11 @@ Proje klasörünü `INSTALL.bat` üzerine sürükleyin veya çift tıklayıp tam
 powershell -ExecutionPolicy Bypass -File .\setup-ai-context.ps1 -ProjectPath "C:\projeler\ornek-proje" -ContextProfile Minimal
 ```
 
-Minimal beş temel Graphify aracını etkinleştirir. Balanced mimari araçları ve varsa Laravel Boost'u ekler. Full tüm Graphify araçlarını etkinleştirir. Graf `--code-only` ile yerel oluşturulur; indeksleme için API anahtarı gerekmez.
+Minimal beş temel Graphify aracını etkinleştirir. Balanced mimari araçlarını ekler; Laravel Boost yalnızca ayrıca etkinleştirildiğinde kurulur. Full tüm Graphify araçlarını etkinleştirir. Graf `--code-only` ile yerel oluşturulur; indeksleme için API anahtarı gerekmez.
 
 ## Dosyalar ve otomasyon
 
-Kurucu projeye özel Codex, Cursor ve Antigravity MCP ayarları, kısa ajan kuralları, `.graphifyignore`, Git hook'ları ve Windows Zamanlanmış Görevi oluşturur. Codex Cloud için `.codex/cloud/setup.sh`, `maintenance.sh` ve `query.sh` dosyalarını da oluşturur. Bulut betiklerini hedef depoya commit edin; ardından o deponun Codex Cloud ortam ayarlarına `bash .codex/cloud/setup.sh` ve `bash .codex/cloud/maintenance.sh` komutlarını girin.
+Kurucu projeye özel Codex, Cursor ve Antigravity MCP ayarları, kısa ajan kuralları, `.graphifyignore` dosyasını oluşturur. Git hook'ları ve Windows zamanlanmış görevi yalnızca açık izinle kurulur. Codex Cloud için `.codex/cloud/setup.sh`, `maintenance.sh` ve `query.sh` dosyalarını da oluşturur. Bulut betiklerini hedef depoya commit edin; ardından o deponun Codex Cloud ortam ayarlarına `bash .codex/cloud/setup.sh` ve `bash .codex/cloud/maintenance.sh` komutlarını girin.
 
 Bulut sorgu yardımcısının varsayılan çıktı bütçesi 800 tokendir. Uzak hesap ayarları Codex Cloud içinde yapılandırılmalıdır; yerel kurucu bunları değiştiremez.
 
@@ -32,4 +32,8 @@ Kurucu, projeye özel `.codex/graphify-mcp-proxy.py` filtresini oluşturur. Mini
 
 ## Güvenli kurulum tercihleri
 
-Laravel Boost ve Git hook kurulumu varsayılan olarak **kapalıdır**. Boost; Artisan üzerinden proje kodu çalıştırabilir ve uygulama/veritabanı erişimi sağlayabilir. Güvendiğiniz projelerde Windows için `-EnableLaravelBoost -EnableHooks`, Linux/macOS için `--enable-laravel-boost --enable-hooks` seçeneklerini kullanın. Mevcut Laravel Boost MCP bağlantıları kurulum tekrarlandığında açık seçim yapılmazsa kaldırılabilir; gerektiğinde yeniden etkinleştirin. Watcher davranışı değişmemiştir (`-NoWatcher` veya `--no-watcher` ile kapatılabilir). Bu mekanizma işletim sistemi izin sınırı değildir.
+Laravel Boost ve Git hook kurulumu varsayılan olarak **kapalıdır**. Boost; Artisan üzerinden proje kodu çalıştırabilir ve uygulama/veritabanı erişimi sağlayabilir. Güvendiğiniz projelerde Windows için `-EnableLaravelBoost -EnableHooks`, Linux/macOS için `--enable-laravel-boost --enable-hooks` seçeneklerini kullanın. Mevcut Laravel Boost MCP bağlantıları normal yeniden kurulumda otomatik silinmez. Watcher varsayılan olarak kapalıdır; Windows `-EnableWatcher`, Linux/macOS `--enable-watcher` ile açılır. Bu mekanizma işletim sistemi izin sınırı değildir.
+
+## Hata kurtarma
+
+Kurulum başlamadan önce mevcut MCP, Codex, Gemini ve ajan yapılandırmaları geçici olarak yedeklenir; hata durumunda bu dosyalar geri yüklenir. Paket kurulumları, graf çıktıları ve önceden kurulu servisler geri alma kapsamına dahil değildir. Başka projeye ait MCP sunucu çakışmalarında kurulum kullanıcı dosyasını değiştirmeden hata verir. Kullanıcıya ait mevcut kurulumları silmek için otomatik işlem yapılmaz.

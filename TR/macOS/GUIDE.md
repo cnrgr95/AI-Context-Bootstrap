@@ -12,7 +12,7 @@ Bu klasörde `bash INSTALL.sh /projenin/tam/yolu` çalıştırın. Kurucu tekrar
 bash setup-ai-context.sh /projenin/tam/yolu --profile Minimal
 ```
 
-Minimal beş temel Graphify aracını etkinleştirir. Balanced mimari araçları ve varsa Laravel Boost'u ekler. Full tüm Graphify araçlarını etkinleştirir. Graf `--code-only` ile yerel oluşturulur; indeksleme için API anahtarı gerekmez.
+Minimal beş temel Graphify aracını etkinleştirir. Balanced mimari araçlarını ekler; Laravel Boost yalnızca ayrıca etkinleştirildiğinde kurulur. Full tüm Graphify araçlarını etkinleştirir. Graf `--code-only` ile yerel oluşturulur; indeksleme için API anahtarı gerekmez.
 
 ## Dosyalar ve otomasyon
 
@@ -32,4 +32,8 @@ Kurucu, projeye özel `.codex/graphify-mcp-proxy.py` filtresini oluşturur. Mini
 
 ## Güvenli kurulum tercihleri
 
-Laravel Boost ve Git hook kurulumu varsayılan olarak **kapalıdır**. Boost; Artisan üzerinden proje kodu çalıştırabilir ve uygulama/veritabanı erişimi sağlayabilir. Güvendiğiniz projelerde Windows için `-EnableLaravelBoost -EnableHooks`, Linux/macOS için `--enable-laravel-boost --enable-hooks` seçeneklerini kullanın. Mevcut Laravel Boost MCP bağlantıları kurulum tekrarlandığında açık seçim yapılmazsa kaldırılabilir; gerektiğinde yeniden etkinleştirin. Watcher davranışı değişmemiştir (`-NoWatcher` veya `--no-watcher` ile kapatılabilir). Bu mekanizma işletim sistemi izin sınırı değildir.
+Laravel Boost ve Git hook kurulumu varsayılan olarak **kapalıdır**. Boost; Artisan üzerinden proje kodu çalıştırabilir ve uygulama/veritabanı erişimi sağlayabilir. Güvendiğiniz projelerde Windows için `-EnableLaravelBoost -EnableHooks`, Linux/macOS için `--enable-laravel-boost --enable-hooks` seçeneklerini kullanın. Mevcut Laravel Boost MCP bağlantıları normal yeniden kurulumda otomatik silinmez. Watcher varsayılan olarak kapalıdır; Windows `-EnableWatcher`, Linux/macOS `--enable-watcher` ile açılır. Bu mekanizma işletim sistemi izin sınırı değildir.
+
+## Hata kurtarma
+
+Kurulum başlamadan önce mevcut MCP, Codex, Gemini ve ajan yapılandırmaları geçici olarak yedeklenir; hata durumunda bu dosyalar geri yüklenir. Paket kurulumları, graf çıktıları ve önceden kurulu servisler geri alma kapsamına dahil değildir. Başka projeye ait MCP sunucu çakışmalarında kurulum kullanıcı dosyasını değiştirmeden hata verir. Kullanıcıya ait mevcut kurulumları silmek için otomatik işlem yapılmaz.
