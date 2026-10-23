@@ -77,7 +77,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        graphify-version: ['0.9.93', '0.9.94']
+        graphify-version: ['0.9.94']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

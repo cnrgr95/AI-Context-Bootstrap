@@ -247,7 +247,7 @@ try {
         $graphifyReady = $LASTEXITCODE -eq 0
     }
     if (-not $graphifyReady) {
-        & $uv tool install 'graphifyy[mcp,watch]' --with 'mcp<2' --reinstall
+        & $uv tool install 'graphifyy[mcp,watch]==0.9.94' --with 'mcp<2' --reinstall
         if ($LASTEXITCODE -ne 0) { throw 'Graphify kurulumu basarisiz. Acik IDE/MCP oturumlarini kapatip betigi tekrar calistirin.' }
     }
 

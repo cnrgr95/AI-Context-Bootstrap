@@ -41,7 +41,7 @@ if ! command -v uv >/dev/null; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 if ! command -v graphify >/dev/null || ! command -v graphify-mcp >/dev/null; then
-  uv tool install 'graphifyy[mcp,watch]' --with 'mcp<2>'
+  uv tool install 'graphifyy[mcp,watch]==0.9.94' --with 'mcp<2>'
 fi
 command -v graphify >/dev/null && command -v graphify-mcp >/dev/null || { echo "Graphify executables were not found." >&2; exit 1; }
 graphify_bin="$(command -v graphify)"
