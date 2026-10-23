@@ -164,8 +164,9 @@ try {
     if (-not (Test-Path $graphify) -or -not (Test-Path $graphifyMcp)) { throw 'Graphify calistirilabilir dosyalari bulunamadi.' }
 
     Add-UniqueLines '.graphifyignore' @('vendor/','node_modules/','public/build/','public/storage/','storage/','graphify-out/','.env*','*.key','*.pem','*.dump','*.sql','*.sql.enc')
-    Add-UniqueLines '.gitignore' @('/graphify-out/','!/.codex/','/.codex/*','!/.codex/cloud/','!/.codex/cloud/**')
+    Add-UniqueLines '.gitignore' @('/graphify-out/','!/.codex/','/.codex/*','!/.codex/graphify-mcp-proxy.py','!/.codex/cloud/','!/.codex/cloud/**')
     New-Item -ItemType Directory -Force '.cursor','.codex','.codex\cloud','.agents\rules' | Out-Null
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'graphify-mcp-proxy.py') -Destination '.codex\graphify-mcp-proxy.py' -Force
     Add-UniqueLines '.cursorignore' @('/vendor/','/node_modules/','/graphify-out/','/public/build/','/public/storage/','/storage/logs/','.env','.env.*','*.key','*.pem','*.dump','*.sql')
     $cloudTemplateDirectory = Join-Path $PSScriptRoot 'cloud'
     foreach ($cloudFile in @('setup.sh','maintenance.sh','query.sh','README.md')) {
@@ -195,15 +196,17 @@ try {
         'Balanced' { @('query_graph','get_node','get_neighbors','get_community','god_nodes','shortest_path','graph_stats') }
         default { @() }
     }
-    $graphDefinition = [pscustomobject]@{ command = $graphifyMcp; args = @((Join-Path $project 'graphify-out\graph.json')); cwd = $project }
-    $antigravityGraphDefinition = [pscustomobject]@{ command = $graphifyMcp; args = @((Join-Path $project 'graphify-out\graph.json')); cwd = $project; disabledTools = $graphDisabledTools }
+    $proxyArgs = @((Join-Path $project '.codex\graphify-mcp-proxy.py'), $graphifyMcp, (Join-Path $project 'graphify-out\graph.json'), $ContextProfile, $project)
+    if (-not (Test-Path -LiteralPath $toolPython)) { throw 'Graphify Python interpreter could not be found.' }
+    $graphDefinition = [pscustomobject]@{ command = $toolPython; args = $proxyArgs; cwd = $project }
+    $antigravityGraphDefinition = [pscustomobject]@{ command = $toolPython; args = $proxyArgs; cwd = $project; disabledTools = $graphDisabledTools }
     Set-McpServer '.mcp.json' 'graphify' $graphDefinition
     Set-McpServer '.cursor\mcp.json' 'graphify' $graphDefinition
     Remove-McpServer '.agents\mcp_config.json' 'graphify' $project
     Set-McpServer '.agents\mcp_config.json' "graphify-$projectId" $antigravityGraphDefinition
     Set-McpServer (Join-Path $userHomePath '.gemini\config\mcp_config.json') "graphify-$projectId" $antigravityGraphDefinition
 
-    Set-CodexMcpServer '.codex\config.toml' 'graphify' $graphifyMcp @((Join-Path $project 'graphify-out\graph.json')) $project $graphEnabledTools
+    Set-CodexMcpServer '.codex\config.toml' 'graphify' $toolPython $proxyArgs $project $graphEnabledTools
 
     $boostConfigured = $false
     if ((Test-Path 'artisan') -and -not $SkipLaravelBoost -and $ContextProfile -ne 'Minimal') {

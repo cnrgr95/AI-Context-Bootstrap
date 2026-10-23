@@ -25,3 +25,7 @@ Bulut sorgu yardımcısının varsayılan çıktı bütçesi 800 tokendir. Uzak 
 Proje klasörünü `CHECK_STATUS.bat` üzerine sürükleyin. Denetleyici MCP dosyalarını, grafı ve araç erişimini gösterir. MCP araçları görünmüyorsa editörün MCP listesini yenileyin veya yeniden başlatın. Laravel Boost yoksa proje bağımlılıklarını ve uyumlu PHP'yi kurup kurucuyu yeniden çalıştırın. Graf eskiyse projede `graphify update .` çalıştırın.
 
 Token tasarrufu göreve ve modele bağlıdır; sabit bir oran garanti edilmez. [Güvenlik notlarını](SECURITY.md) okuyun.
+
+## MCP araç izinleri ve kapsam
+
+Kurucu, projeye özel `.codex/graphify-mcp-proxy.py` filtresini oluşturur. Minimal (5), Balanced (7) ve Full (10) profilleri Codex, Cursor ve Antigravity/Gemini istemcilerinde MCP `tools/list` ve `tools/call` seviyesinde uygulanır. Graphify `project_path` parametresiyle başka bir proje sorgulanamaz. Filtre **işletim sistemi güvenlik sandbox'ı değildir**: Graphify süreci ve AI ajanının terminal/dosya izinleri ayrıca sınırlandırılmalıdır. Profil değiştirildiğinde kurulumu yeniden çalıştırın.

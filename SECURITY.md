@@ -13,3 +13,7 @@ The generated ignore files reduce accidental context inclusion but are not acces
 Supported security updates apply to the latest release.
 
 Codex Cloud installs Graphify during the environment setup phase. Keep agent-phase internet access disabled unless the project requires it. When access is required, use the narrowest domain and HTTP-method allowlist that supports the task.
+
+## MCP profile enforcement
+
+Each installer generates a local stdio Graphify proxy that filters the advertised tools and rejects disallowed tool calls. It also blocks cross-project `project_path` arguments. This is tool-level filtering only: it does not sandbox Graphify, the host editor, Laravel Boost or any shell tools. Profiles do not grant or revoke operating-system privileges. Avoid trusting third-party project content as agent instructions.

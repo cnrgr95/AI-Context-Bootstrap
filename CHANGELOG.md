@@ -2,6 +2,13 @@
 
 All notable changes follow semantic versioning.
 
+## Unreleased
+
+- Enforce Minimal/Balanced/Full Graphify tool access through a shared stdio MCP proxy on all supported clients and platforms.
+- Block Graphify MCP cross-project `project_path` requests.
+- Add simulated MCP protocol regression tests to Windows/Linux/macOS CI and installer smoke coverage.
+- Clarify that MCP filtering is not an OS security boundary.
+
 ## 2.2.0 - 2026-09-12
 
 - Reorganized the distribution as `EN/{Linux,Windows,macOS}` and `TR/{Linux,Windows,macOS}`.

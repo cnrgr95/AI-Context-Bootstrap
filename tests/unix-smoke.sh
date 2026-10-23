@@ -47,6 +47,10 @@ assert (root/".codex/config.toml").read_text().count("[mcp_servers.graphify]") =
 assert "[mcp_servers.other]" in (root/".codex/config.toml").read_text()
 assert (root/"AGENTS.md").read_text().count("<!-- BEGIN AI-CONTEXT-BOOTSTRAP -->") == 1
 assert "Minimal" in (root/".codex/cloud/setup.sh").read_text()
+assert (root/".codex/graphify-mcp-proxy.py").is_file()
+config = json.loads((root/".cursor/mcp.json").read_text())["mcpServers"]["graphify"]
+assert "graphify-mcp-proxy.py" in config["args"][0]
+assert config["args"][-2] == "Minimal"
 assert len(json.loads((home/".gemini/config/mcp_config.json").read_text())["mcpServers"]) == 1
 PY
 for file in "$temp/project/.codex/cloud/"*.sh; do bash -n "$file"; done

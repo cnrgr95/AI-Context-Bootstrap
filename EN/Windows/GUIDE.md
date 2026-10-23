@@ -25,3 +25,7 @@ The cloud query helper defaults to an 800-token output budget. Cloud environment
 Drag the project folder onto `CHECK_STATUS.bat`. The checker reports MCP files, graph, and tool availability. If MCP tools are absent, refresh the editor's MCP list or restart it. If Laravel Boost is absent, install project dependencies and a compatible PHP version, then rerun the installer. If the graph is stale, run `graphify update .` inside the project.
 
 Token savings depend on the task and model; no fixed reduction is guaranteed. See [security guidance](SECURITY.md).
+
+## MCP tool permissions and scope
+
+The installer creates a project-scoped `.codex/graphify-mcp-proxy.py` filter. Minimal (5), Balanced (7) and Full (10) are enforced at MCP `tools/list` and `tools/call` for Codex, Cursor and Antigravity/Gemini. Graphify's `project_path` cannot target another project. This filter is **not an operating-system sandbox**; restrict Graphify's process permissions and the AI agent's file/terminal permissions separately. Re-run setup to change profiles.

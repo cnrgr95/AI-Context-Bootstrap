@@ -46,6 +46,7 @@ graphify_mcp_bin="$(command -v graphify-mcp)"
 
 cd "$project"
 mkdir -p .cursor .codex/cloud .agents/rules
+cp "$script_root/graphify-mcp-proxy.py" ".codex/graphify-mcp-proxy.py"
 python3 - "$project" "$project_id" "$graphify_mcp_bin" "$profile" "$HOME" "$skip_boost" <<'PY'
 import json, os, re, subprocess, sys
 from pathlib import Path
@@ -103,16 +104,16 @@ def remove_codex(path, name):
 
 add_lines(".graphifyignore", ["vendor/","node_modules/","public/build/","public/storage/","storage/","graphify-out/",".env*","*.key","*.pem","*.dump","*.sql","*.sql.enc"])
 add_lines(".cursorignore", ["/vendor/","/node_modules/","/graphify-out/","/public/build/","/public/storage/","/storage/logs/",".env",".env.*","*.key","*.pem","*.dump","*.sql"])
-add_lines(".gitignore", ["/graphify-out/","!/.codex/","/.codex/*","!/.codex/cloud/","!/.codex/cloud/**"])
+add_lines(".gitignore", ["/graphify-out/","!/.codex/","/.codex/*","!/.codex/graphify-mcp-proxy.py","!/.codex/cloud/","!/.codex/cloud/**"])
 
 disabled = {"Minimal":["get_community","god_nodes","list_prs","get_pr_impact","triage_prs"],"Balanced":["list_prs","get_pr_impact","triage_prs"],"Full":[]}[profile]
 enabled = {"Minimal":["query_graph","get_node","get_neighbors","shortest_path","graph_stats"],"Balanced":["query_graph","get_node","get_neighbors","get_community","god_nodes","shortest_path","graph_stats"],"Full":[]}[profile]
-base = {"command": graphify_mcp, "args":[str(root / "graphify-out/graph.json")], "cwd":project}
+base = {"command": sys.executable, "args":[str(root / ".codex/graphify-mcp-proxy.py"), graphify_mcp, str(root / "graphify-out/graph.json"), profile, project], "cwd":project}
 set_server(root/".mcp.json", "graphify", base)
 set_server(root/".cursor/mcp.json", "graphify", base)
 set_server(root/".agents/mcp_config.json", f"graphify-{project_id}", {**base,"disabledTools":disabled})
 set_server(Path(home)/".gemini/config/mcp_config.json", f"graphify-{project_id}", {**base,"disabledTools":disabled})
-set_codex(root/".codex/config.toml", "graphify", graphify_mcp, base["args"], project, enabled)
+set_codex(root/".codex/config.toml", "graphify", base["command"], base["args"], project, enabled)
 
 boost = False
 if skip_boost == "0" and profile != "Minimal" and (root/"artisan").exists():
