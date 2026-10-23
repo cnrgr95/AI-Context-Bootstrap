@@ -2,19 +2,20 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <project-path> [--profile Minimal|Balanced|Full] [--enable-laravel-boost] [--enable-hooks] [--no-watcher]"
+  echo "Usage: $0 <project-path> [--profile Minimal|Balanced|Full] [--enable-laravel-boost] [--enable-hooks] [--enable-watcher]"
 }
 
 [[ $# -ge 1 ]] || { usage; exit 2; }
 project_input="$1"; shift
-profile="Minimal"; enable_boost=0; enable_hooks=0; no_watcher=0
+profile="Minimal"; enable_boost=0; enable_hooks=0; enable_watcher=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --profile) profile="${2:-}"; shift 2 ;;
     --skip-laravel-boost) enable_boost=0; shift ;; # backwards compatibility
     --enable-laravel-boost) enable_boost=1; shift ;;
     --enable-hooks) enable_hooks=1; shift ;;
-    --no-watcher) no_watcher=1; shift ;;
+    --enable-watcher) enable_watcher=1; shift ;;
+    --no-watcher) enable_watcher=0; shift ;; # backwards compatibility
     *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
   esac
 done
@@ -47,6 +48,61 @@ graphify_bin="$(command -v graphify)"
 graphify_mcp_bin="$(command -v graphify-mcp)"
 
 cd "$project"
+
+# Preserve user-owned configuration. Restore all tracked files if any later
+# step fails. Backup directory is private (mktemp mode 0700) and removed at exit.
+tracked_paths=(
+  "$project/.mcp.json"
+  "$project/.cursor/mcp.json"
+  "$project/.codex/config.toml"
+  "$project/.agents/mcp_config.json"
+  "$HOME/.gemini/config/mcp_config.json"
+  "$project/AGENTS.md"
+  "$project/.graphifyignore"
+  "$project/.cursorignore"
+  "$project/.gitignore"
+  "$project/.agents/rules/efficient-context.md"
+  "$project/.codex/graphify-mcp-proxy.py"
+  "$project/.codex/cloud/setup.sh"
+  "$project/.codex/cloud/query.sh"
+  "$project/.codex/cloud/maintenance.sh"
+  "$project/.codex/cloud/README.md"
+)
+snapshot="$(mktemp -d "${TMPDIR:-/tmp}/ai-context-rollback.XXXXXXXX")"
+for i in "${!tracked_paths[@]}"; do
+  if [[ -L "${tracked_paths[$i]}" ]]; then
+    echo "Refusing to overwrite symlink: ${tracked_paths[$i]}" >&2
+    rm -rf "$snapshot"
+    exit 1
+  fi
+  if [[ -f "${tracked_paths[$i]}" ]]; then
+    cp -p -- "${tracked_paths[$i]}" "$snapshot/$i"
+  elif [[ -e "${tracked_paths[$i]}" ]]; then
+    echo "Refusing to replace non-file path: ${tracked_paths[$i]}" >&2
+    rm -rf "$snapshot"
+    exit 1
+  else
+    : > "$snapshot/absent-$i"
+  fi
+done
+restore_on_exit() {
+  local code=$?
+  trap - EXIT
+  if (( code != 0 )); then
+    echo "Setup failed; restoring original configuration files." >&2
+    for i in "${!tracked_paths[@]}"; do
+      if [[ -f "$snapshot/absent-$i" ]]; then
+        rm -f -- "${tracked_paths[$i]}"
+      else
+        mkdir -p -- "$(dirname "${tracked_paths[$i]}")"
+        cp -p -- "$snapshot/$i" "${tracked_paths[$i]}"
+      fi
+    done
+  fi
+  rm -rf -- "$snapshot"
+  exit "$code"
+}
+trap restore_on_exit EXIT
 mkdir -p .cursor .codex/cloud .agents/rules
 cp "$script_root/graphify-mcp-proxy.py" ".codex/graphify-mcp-proxy.py"
 python3 - "$project" "$project_id" "$graphify_mcp_bin" "$profile" "$HOME" "$enable_boost" <<'PY'
@@ -72,7 +128,12 @@ def read_json(path):
 
 def set_server(path, name, value):
     p = Path(path); p.parent.mkdir(parents=True, exist_ok=True)
-    data = read_json(p); data["mcpServers"][name] = value
+    data = read_json(p)
+    previous = data["mcpServers"].get(name)
+    if previous is not None:
+        if not isinstance(previous, dict) or previous.get("cwd") != project:
+            raise RuntimeError(f"Refusing to replace another project's MCP server: {name} in {p}")
+    data["mcpServers"][name] = value
     temporary = p.with_name(p.name + ".ai-context-" + str(os.getpid()) + ".tmp")
     temporary.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     os.replace(temporary, p)
@@ -97,8 +158,10 @@ def set_codex(path, name, command, args, cwd, tools=None):
     if pattern.search(text):
         text = pattern.sub(replacement, text)
     else:
-        table = re.compile(r"(?ms)^\[mcp_servers\." + re.escape(name) + r"\]\n.*?(?=^\[|\Z)")
-        text = table.sub("", text).rstrip() + "\n\n" + replacement + "\n"
+        table = re.compile(r"(?m)^\\[mcp_servers\\." + re.escape(name) + r"\\]\\s*$")
+        if table.search(text):
+            raise RuntimeError(f"Unmanaged Codex MCP table already exists: {name}")
+        text = text.rstrip() + "\n\n" + replacement + "\n"
     p.write_text(text.lstrip("\n"), encoding="utf-8")
 
 def remove_codex(path, name):
@@ -133,12 +196,9 @@ if enable_boost == "1" and profile != "Minimal" and (root/"artisan").exists():
             set_codex(root/".codex/config.toml","laravel-boost",php,["artisan","boost:mcp"],project)
             boost=True
 if not boost:
-    for p in [root/".mcp.json",root/".cursor/mcp.json",root/".agents/mcp_config.json"]:
-        if p.exists() and read_json(p)["mcpServers"].get("laravel-boost",{}).get("cwd") == project: remove_server(p,"laravel-boost")
-    global_boost=Path(home)/".gemini/config/mcp_config.json"
-    if global_boost.exists() and read_json(global_boost)["mcpServers"].get(f"laravel-boost-{project_id}",{}).get("cwd") == project:
-        remove_server(global_boost,f"laravel-boost-{project_id}")
-    remove_codex(root/".codex/config.toml","laravel-boost")
+    # A normal install/reinstall must never uninstall another user's MCP server.
+    # Disable/remove Boost only via a dedicated explicit cleanup operation.
+    pass
 
 rule = '## Efficient agent context\n\nStart with named files and search narrowly. Use Graphify MCP for cross-module questions; in Codex Cloud use `bash .codex/cloud/query.sh "question"` if MCP is unavailable. Keep the default 800-token query budget unless more detail is needed. Verify graph results against source, preserve unrelated changes, and keep secrets, dependencies, and generated output out of context.'
 p=root/"AGENTS.md"; text=p.read_text(encoding="utf-8") if p.exists() else ""
@@ -162,7 +222,7 @@ else
   echo "Git hooks unchanged (opt in with --enable-hooks)."
 fi
 
-if [[ "$no_watcher" == 0 ]]; then
+if [[ "$enable_watcher" == 1 ]]; then
   case "$(uname -s)" in
     Linux)
       if command -v systemctl >/dev/null && systemctl --user show-environment >/dev/null 2>&1; then
