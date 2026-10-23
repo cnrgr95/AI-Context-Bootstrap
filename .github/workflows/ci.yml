@@ -70,3 +70,16 @@ jobs:
         run: bash tests/unix-smoke.sh
       - name: Verify Graphify MCP profile enforcement
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+
+  graphify-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install validated Graphify integration test dependency
+        run: python -m pip install 'graphifyy[mcp,watch]==0.9.93' 'mcp<2'
+      - name: Exercise real graph extraction and MCP stdio protocol
+        run: python tests/real-graphify-smoke.py
