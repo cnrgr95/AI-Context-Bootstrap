@@ -5,7 +5,7 @@ Target project: <ABSOLUTE_PROJECT_PATH>
 1. Preserve existing project changes and unrelated MCP servers. Merge configuration and keep the setup repeatable.
 2. Install Graphify in an isolated environment, build a local code-only graph, and exclude secrets, dependencies, dumps, and generated files.
 3. Configure project-scoped MCP for Codex, Cursor, and Antigravity. Use the Minimal profile by default; expose more tools only when the task requires them.
-4. Configure Laravel Boost only when the selected profile and a compatible PHP installation allow it.
-5. Install Graphify Git hooks and systemd user service (when available). Generate Codex Cloud setup, maintenance, and 800-token query helpers without platform-specific paths.
-6. Verify MCP configuration, graph creation, and update behavior. Report the results without claiming a fixed token-saving percentage.
+4. Configure Laravel Boost only with explicit user opt-in, a compatible PHP runtime and a trusted project. Never implicitly remove existing connections.
+5. Install Git hooks and background watchers only on explicit request. Generate safe Codex Cloud setup, maintenance and 800-token query helpers.
+6. Roll back tracked configurations on failure, validate MCP and graph behavior, and avoid fixed token-saving claims.
 ```
