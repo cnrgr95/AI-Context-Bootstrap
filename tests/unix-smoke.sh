@@ -20,7 +20,7 @@ SH
 cat > "$HOME/.local/bin/graphify" <<'SH'
 #!/usr/bin/env bash
 case "$1" in
-  extract) mkdir -p graphify-out; printf '{"nodes":[],"edges":[]}\n' > graphify-out/graph.json ;;
+  extract) if [[ "${FAIL_GRAPHIFY_EXTRACT:-}" == "1" ]]; then exit 42; fi; mkdir -p graphify-out; printf '{"nodes":[],"edges":[]}\n' > graphify-out/graph.json ;;
   cluster-only|hook) ;;
   query) echo "$@" ;;
   *) exit 1 ;;
@@ -77,4 +77,29 @@ if bash "$repo/EN/Linux/check-status.sh" "$temp/project" >/dev/null 2>&1; then
   exit 1
 fi
 cp "$temp/proxy-backup" "$temp/project/.codex/graphify-mcp-proxy.py"
+# A failed re-install must roll back user configuration.
+cp "$temp/project/.mcp.json" "$temp/snapshot-mcp"
+cp "$temp/project/.codex/config.toml" "$temp/snapshot-toml"
+cp "$temp/project/AGENTS.md" "$temp/snapshot-agent"
+cp "$HOME/.gemini/config/mcp_config.json" "$temp/snapshot-global"
+if FAIL_GRAPHIFY_EXTRACT=1 bash "$repo/EN/Linux/setup-ai-context.sh" "$temp/project" --profile Full --no-watcher >/dev/null 2>&1; then
+  echo "Installer reported success despite failed extraction." >&2
+  exit 1
+fi
+cmp "$temp/project/.mcp.json" "$temp/snapshot-mcp"
+cmp "$temp/project/.codex/config.toml" "$temp/snapshot-toml"
+cmp "$temp/project/AGENTS.md" "$temp/snapshot-agent"
+cmp "$HOME/.gemini/config/mcp_config.json" "$temp/snapshot-global"
+
+# A third-party server with a colliding name must be preserved.
+mkdir -p "$temp/collision"
+git -C "$temp/collision" init -q
+printf '{"mcpServers":{"graphify":{"command":"external","cwd":"/another/project"}}}\n' > "$temp/collision/.mcp.json"
+cp "$temp/collision/.mcp.json" "$temp/collision-original"
+if bash "$repo/EN/Linux/setup-ai-context.sh" "$temp/collision" --profile Minimal --no-watcher >/dev/null 2>&1; then
+  echo "Installer unexpectedly replaced an external MCP server." >&2
+  exit 1
+fi
+cmp "$temp/collision/.mcp.json" "$temp/collision-original"
+test ! -f "$temp/collision/.codex/graphify-mcp-proxy.py"
 echo 'Unix installer smoke test passed.'

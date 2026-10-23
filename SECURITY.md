@@ -21,3 +21,7 @@ Each installer generates a local stdio Graphify proxy that filters the advertise
 ## Trusted project integrations
 
 Laravel Boost and Git hook installation are now explicit opt-ins. Running Laravel Artisan may execute project code and access the application's database; enabling hooks may affect future Git actions. Turn these on only for reviewed repositories. The Graphify proxy and ignore files are not a substitute for process isolation or least-privilege credentials.
+
+## Setup rollback boundaries
+
+The installers snapshot tracked project and global Gemini configuration files and restore them when setup fails. Package-manager changes, graph output, hooks and already-created services are outside the rollback scope. MCP server-name conflicts are not overwritten. Watchers require explicit opt-in. This does not make the MCP proxy an OS-level sandbox.

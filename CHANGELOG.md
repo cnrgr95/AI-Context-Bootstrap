@@ -4,6 +4,10 @@ All notable changes follow semantic versioning.
 
 ## Unreleased
 
+- Add configuration rollback and server-collision safeguards across supported installers.
+- Make background watchers opt-in and block non-tool MCP methods.
+- Add simulated Unix failure-injection regression tests for rollback and third-party MCP preservation.
+
 - Detect missing Graphify MCP proxy and invalid graph JSON in platform status checks.
 
 - Validate Codex Cloud Graphify query budgets (1–16,000 tokens) before invoking the CLI.
