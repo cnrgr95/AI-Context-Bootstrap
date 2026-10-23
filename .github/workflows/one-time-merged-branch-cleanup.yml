@@ -1,0 +1,33 @@
+name: One-time merged branch cleanup
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  delete-confirmed-merged-branch:
+    if: github.repository == 'cnrgr95/AI-Context-Bootstrap'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify merged snapshot matches branch source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/fix/security-reliability-hardening
+          merged_tree="$(git rev-parse 'c5500d96a5b7bd8e0eaee03696011ec970dbb544^{tree}')"
+          source_tree="$(git rev-parse 'FETCH_HEAD^{tree}')"
+          test "$merged_tree" = "$source_tree"
+          echo "Verified: branch contents equal the previously merged main snapshot."
+      - name: Delete only confirmed merged branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method DELETE repos/cnrgr95/AI-Context-Bootstrap/git/refs/heads/fix/security-reliability-hardening
