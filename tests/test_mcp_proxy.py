@@ -84,8 +84,8 @@ class ProfileProxyTests(unittest.TestCase):
 
     def test_oversized_input_does_not_reach_backend(self):
         script = ROOT / "EN/Linux/graphify-mcp-proxy.py"
-        long_request = b"x" * (1024 * 1024 + 20) + b"\\n"
-        valid = (json.dumps({"jsonrpc":"2.0","id":21,"method":"ping"}) + "\\n").encode()
+        long_request = b"x" * (1024 * 1024 + 20) + b"\n"
+        valid = (json.dumps({"jsonrpc":"2.0","id":21,"method":"ping"}) + "\n").encode()
         process = subprocess.run(
             [sys.executable, str(script), sys.executable, str(self.backend), "Minimal", str(self.root)],
             input=long_request + valid, capture_output=True, timeout=15,
