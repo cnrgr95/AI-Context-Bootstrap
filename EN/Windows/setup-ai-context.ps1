@@ -7,6 +7,7 @@ param(
     [switch] $SkipLaravelBoost,
     [switch] $EnableLaravelBoost,
     [switch] $EnableHooks,
+    [switch] $EnableWatcher,
     [switch] $NoWatcher
 )
 
@@ -46,6 +47,10 @@ function Set-McpServer([string] $Path, [string] $Name, $Definition) {
         $config | Add-Member -NotePropertyName mcpServers -NotePropertyValue ([pscustomobject]@{})
     }
     if ($config.mcpServers.PSObject.Properties[$Name]) {
+        $old = $config.mcpServers.PSObject.Properties[$Name].Value
+        if ($null -eq $old -or $old.cwd -ne $project) {
+            throw "Refusing to overwrite an unmanaged MCP server ($Name) in $Path"
+        }
         $config.mcpServers.$Name = $Definition
     } else {
         $config.mcpServers | Add-Member -NotePropertyName $Name -NotePropertyValue $Definition
@@ -58,7 +63,7 @@ function Remove-McpServer([string] $Path, [string] $Name, [string] $ExpectedCwd 
     $config = Read-McpConfig $Path
     $property = $config.mcpServers.PSObject.Properties[$Name]
     if (-not $property) { return }
-    if ($ExpectedCwd -and $property.Value.cwd -and $property.Value.cwd -ne $ExpectedCwd) { return }
+    if ($ExpectedCwd -and $property.Value.cwd -ne $ExpectedCwd) { return }
     $config.mcpServers.PSObject.Properties.Remove($Name)
     Write-JsonFile $Path $config
 }
@@ -83,8 +88,11 @@ function Set-CodexMcpServer([string] $Path, [string] $Name, [string] $Command, [
     if ($text -match $markedPattern) {
         $text = [regex]::Replace($text, $markedPattern, $block)
     } else {
-        $tablePattern = "(?ms)^\[mcp_servers\.$([regex]::Escape($Name))\]\r?\n.*?(?=^\[|\z)"
-        $text = [regex]::Replace($text, $tablePattern, '').TrimEnd() + "`r`n`r`n" + $block + "`r`n"
+        $tablePattern = "(?m)^\[mcp_servers\.$([regex]::Escape($Name))\]\s*$"
+        if ($text -match $tablePattern) {
+            throw "Refusing to overwrite unmarked Codex MCP server: $Name"
+        }
+        $text = $text.TrimEnd() + "`r`n`r`n" + $block + "`r`n"
     }
     Set-Content -LiteralPath $Path -Value $text -Encoding utf8
 }
@@ -154,7 +162,44 @@ function Find-CompatiblePhp {
 }
 
 Push-Location $project
+
+# Restore existing project and user configuration when setup fails.
+$trackedFiles = @(
+    (Join-Path $project '.mcp.json'),
+    (Join-Path $project '.cursor\mcp.json'),
+    (Join-Path $project '.codex\config.toml'),
+    (Join-Path $project '.agents\mcp_config.json'),
+    (Join-Path $userHomePath '.gemini\config\mcp_config.json'),
+    (Join-Path $project 'AGENTS.md'),
+    (Join-Path $project '.graphifyignore'),
+    (Join-Path $project '.cursorignore'),
+    (Join-Path $project '.gitignore'),
+    (Join-Path $project '.agents\rules\efficient-context.md'),
+    (Join-Path $project '.codex\graphify-mcp-proxy.py'),
+    (Join-Path $project '.codex\cloud\setup.sh'),
+    (Join-Path $project '.codex\cloud\query.sh'),
+    (Join-Path $project '.codex\cloud\maintenance.sh'),
+    (Join-Path $project '.codex\cloud\README.md')
+)
+$backupRoot = $null
+$backedUp = @{}
+$setupComplete = $false
 try {
+    $backupRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("ai-context-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
+    for ($index = 0; $index -lt $trackedFiles.Count; $index++) {
+        $file = $trackedFiles[$index]
+        if (Test-Path -LiteralPath $file) {
+            $fileInfo = Get-Item -LiteralPath $file -Force
+            if ($fileInfo.PSIsContainer -or ($fileInfo.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+                throw "Refusing to overwrite directory or symlink: $file"
+            }
+            Copy-Item -LiteralPath $file -Destination (Join-Path $backupRoot "$index") -Force
+            $backedUp[$index] = $true
+        } else {
+            $backedUp[$index] = $false
+        }
+    }
     $uv = Find-Uv
     $toolPython = Join-Path $env:APPDATA 'uv\tools\graphifyy\Scripts\python.exe'
     $graphifyReady = $false
@@ -236,11 +281,8 @@ try {
         }
     }
     if (-not $boostConfigured) {
-        Remove-McpServer '.mcp.json' 'laravel-boost' $project
-        Remove-McpServer '.cursor\mcp.json' 'laravel-boost' $project
-        Remove-McpServer '.agents\mcp_config.json' 'laravel-boost' $project
-        Remove-McpServer (Join-Path $userHomePath '.gemini\config\mcp_config.json') "laravel-boost-$projectId" $project
-        Remove-CodexMcpServer '.codex\config.toml' 'laravel-boost'
+        # Never delete someone else's Laravel Boost configuration during setup.
+        Write-Host 'Laravel Boost unchanged; removal requires an explicit cleanup operation.'
     }
 
     $rule = @'
@@ -252,7 +294,7 @@ Start with files or modules named by the user. Search narrowly and expand only w
 
 Start with files or modules named by the user and search narrowly. Use the local Graphify MCP for cross-module dependency questions. In Codex Cloud, use `bash .codex/cloud/query.sh "question"` when MCP is unavailable and keep the default 800-token budget unless more detail is needed. Verify graph results against current source. Small named-file tasks do not need Graphify. Preserve unrelated changes, prefer focused diffs, and run the narrowest relevant checks. Keep secrets, dumps, dependencies, and generated output out of model context.'
 
-    if (-not $NoWatcher) {
+    if ($EnableWatcher -and -not $NoWatcher) {
         $taskName = "Graphify-$projectId-Watch"
         $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
         $action = New-ScheduledTaskAction -Execute $graphify -Argument 'watch .' -WorkingDirectory $project
@@ -269,9 +311,31 @@ Start with files or modules named by the user and search narrowly. Use the local
     Write-Host "Context profile: $ContextProfile"
     Write-Host "Graph: $(Join-Path $project 'graphify-out\graph.json')"
     Write-Host 'Codex Cloud: commit .codex/cloud, then configure its setup and maintenance scripts.'
-    if (-not $NoWatcher) { Write-Host "Watcher: Graphify-$projectId-Watch" }
+    if ($EnableWatcher -and -not $NoWatcher) { Write-Host "Watcher: Graphify-$projectId-Watch" }
     Write-Host 'Codex, Cursor ve Antigravity uygulamalarini yeniden baslatin veya MCP listesini yenileyin.'
+    $setupComplete = $true
 } finally {
+    if (-not $setupComplete -and $backupRoot) {
+        Write-Warning 'Setup failed; restoring original configuration files.'
+        for ($index = 0; $index -lt $trackedFiles.Count; $index++) {
+            if (-not $backedUp.ContainsKey($index)) { continue }
+            $file = $trackedFiles[$index]
+            try {
+                if ($backedUp[$index]) {
+                    $parent = Split-Path -Path $file -Parent
+                    if (-not (Test-Path -LiteralPath $parent)) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
+                    Copy-Item -LiteralPath (Join-Path $backupRoot "$index") -Destination $file -Force
+                } elseif (Test-Path -LiteralPath $file) {
+                    Remove-Item -LiteralPath $file -Force
+                }
+            } catch {
+                Write-Warning "Could not restore $file : $($_.Exception.Message)"
+            }
+        }
+    }
+    if ($backupRoot -and (Test-Path -LiteralPath $backupRoot)) {
+        Remove-Item -LiteralPath $backupRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
     Pop-Location
 }
 
