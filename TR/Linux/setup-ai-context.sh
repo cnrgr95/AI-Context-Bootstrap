@@ -47,6 +47,25 @@ command -v graphify >/dev/null && command -v graphify-mcp >/dev/null || { echo "
 graphify_bin="$(command -v graphify)"
 graphify_mcp_bin="$(command -v graphify-mcp)"
 
+# Reject directory symlinks/junction-like redirections before any project writes.
+# Project-local config must not redirect to paths outside the selected repository.
+python3 - "$project" "$HOME" <<'PY'
+import sys
+from pathlib import Path
+root, home = [Path(item) for item in sys.argv[1:]]
+for base, relatives in [
+    (root, (".cursor", ".codex", ".codex/cloud", ".agents", ".agents/rules", "graphify-out")),
+    (home, (".gemini", ".gemini/config", ".local/share", ".local/share/ai-context-bootstrap")),
+]:
+    for relative in relatives:
+        current = base
+        for component in Path(relative).parts:
+            current = current / component
+            if current.is_symlink():
+                raise SystemExit(f"Unsafe symlink in managed path: {current}")
+            if current.exists() and not current.is_dir():
+                raise SystemExit(f"Managed directory is not a directory: {current}")
+PY
 cd "$project"
 
 # Preserve user-owned configuration. Restore all tracked files if any later
@@ -158,7 +177,7 @@ def set_codex(path, name, command, args, cwd, tools=None):
     if pattern.search(text):
         text = pattern.sub(replacement, text)
     else:
-        table = re.compile(r"(?m)^\\[mcp_servers\\." + re.escape(name) + r"\\]\\s*$")
+        table = re.compile(r"(?m)^\[mcp_servers\." + re.escape(name) + r"\]\s*$")
         if table.search(text):
             raise RuntimeError(f"Unmanaged Codex MCP table already exists: {name}")
         text = text.rstrip() + "\n\n" + replacement + "\n"
