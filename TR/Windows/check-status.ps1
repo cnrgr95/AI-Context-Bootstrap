@@ -8,12 +8,18 @@ $sha = [System.Security.Cryptography.SHA256]::Create()
 $hash = ([System.BitConverter]::ToString($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($project.ToLowerInvariant())))).Replace('-','').Substring(0,8).ToLowerInvariant()
 $projectId = "$slug-$hash"
 $graph = Join-Path $project 'graphify-out\graph.json'
+$expectedProxy = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) ("AI-Context-Bootstrap\$projectId\graphify-mcp-proxy.py")
+$configuredProxy = ''
+try {
+    $cursorConfig = Get-Content -LiteralPath (Join-Path $project '.cursor\mcp.json') -Raw -Encoding utf8 | ConvertFrom-Json
+    $configuredProxy = [string]$cursorConfig.mcpServers.graphify.args[0]
+} catch { Write-Warning "Cannot read Graphify MCP configuration: $($_.Exception.Message)" }
 $checks = [ordered]@{
     Project = Test-Path -LiteralPath $project -PathType Container
     Graph = Test-Path -LiteralPath $graph -PathType Leaf
     CursorMcp = Test-Path -LiteralPath (Join-Path $project '.cursor\mcp.json') -PathType Leaf
     CodexMcp = Test-Path -LiteralPath (Join-Path $project '.codex\config.toml') -PathType Leaf
-    McpProxy = Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) ("AI-Context-Bootstrap\$projectId\graphify-mcp-proxy.py")) -PathType Leaf
+    McpProxy = (Test-Path -LiteralPath $expectedProxy -PathType Leaf) -and ($configuredProxy -eq $expectedProxy)
     CodexCloud = Test-Path -LiteralPath (Join-Path $project '.codex\cloud\setup.sh') -PathType Leaf
     AntigravityMcp = Test-Path -LiteralPath (Join-Path $project '.agents\mcp_config.json') -PathType Leaf
     GraphifyCommand = Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.local\bin\graphify.exe') -PathType Leaf

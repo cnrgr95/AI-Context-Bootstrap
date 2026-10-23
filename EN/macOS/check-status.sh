@@ -18,7 +18,10 @@ try:
     data = json.load(open(sys.argv[1], encoding="utf-8"))
     config = data["mcpServers"]["graphify"]
     path = config["args"][0]
-    print(path if path.endswith("/graphify-mcp-proxy.py") else "/nonexistent/graphify-mcp-proxy.py")
+    from pathlib import Path
+    trusted = (Path.home() / ".local/share/ai-context-bootstrap").resolve()
+    candidate = Path(path).resolve(strict=True)
+    print(str(candidate) if candidate.is_relative_to(trusted) and candidate.name == "graphify-mcp-proxy.py" else "/nonexistent/graphify-mcp-proxy.py")
 except (OSError, ValueError, KeyError, IndexError, TypeError):
     print("/nonexistent/graphify-mcp-proxy.py")
 PY
