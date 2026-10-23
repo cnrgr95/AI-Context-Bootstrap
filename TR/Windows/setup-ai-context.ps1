@@ -41,9 +41,23 @@ function Assert-SafeManagedPath([string] $Path) {
 function Write-JsonFile([string] $Path, $Value) {
     $directory = Split-Path $Path -Parent
     if ($directory) { New-Item -ItemType Directory -Force -Path $directory | Out-Null }
-    $tempPath = "$Path.ai-context-$PID.tmp"
+    $tempPath = "$Path.ai-context-$([guid]::NewGuid().ToString('N')).tmp"
     try {
         $Value | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $tempPath -Encoding utf8
+        Move-Item -LiteralPath $tempPath -Destination $Path -Force
+    } finally {
+        if (Test-Path -LiteralPath $tempPath) { Remove-Item -LiteralPath $tempPath -Force }
+    }
+}
+
+function Write-TextFile([string] $Path, [string] $Value) {
+    $parent = Split-Path -Path $Path -Parent
+    if ($parent -and -not (Test-Path -LiteralPath $parent)) {
+        New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    }
+    $tempPath = "$Path.ai-context-$([guid]::NewGuid().ToString('N')).tmp"
+    try {
+        [System.IO.File]::WriteAllText([System.IO.Path]::GetFullPath($tempPath), $Value, [System.Text.UTF8Encoding]::new($false))
         Move-Item -LiteralPath $tempPath -Destination $Path -Force
     } finally {
         if (Test-Path -LiteralPath $tempPath) { Remove-Item -LiteralPath $tempPath -Force }
@@ -65,7 +79,12 @@ function Set-McpServer([string] $Path, [string] $Name, $Definition) {
     }
     if ($config.mcpServers.PSObject.Properties[$Name]) {
         $old = $config.mcpServers.PSObject.Properties[$Name].Value
-        if ($null -eq $old -or $old.cwd -ne $project) {
+        $argsList = @($old.args)
+        $managedProxy = $argsList.Count -ge 5 -and ([string]$argsList[0]) -like '*graphify-mcp-proxy.py' -and $argsList[-1] -eq $project
+        $legacyGraphify = ($old.command -like '*graphify-mcp*') -and $argsList.Count -eq 1 -and $argsList[0] -eq (Join-Path $project 'graphify-out\graph.json')
+        $managedBoost = $argsList.Count -eq 2 -and $argsList[0] -eq 'artisan' -and $argsList[1] -eq 'boost:mcp' -and $old.command -like '*php*'
+        $recognized = if ($Name -like 'graphify*') { $managedProxy -or $legacyGraphify } elseif ($Name -like 'laravel-boost*') { $managedBoost } else { $false }
+        if ($null -eq $old -or $old.cwd -ne $project -or -not $recognized) {
             throw "Refusing to overwrite an unmanaged MCP server ($Name) in $Path"
         }
         $config.mcpServers.$Name = $Definition
@@ -111,7 +130,7 @@ function Set-CodexMcpServer([string] $Path, [string] $Name, [string] $Command, [
         }
         $text = $text.TrimEnd() + "`r`n`r`n" + $block + "`r`n"
     }
-    Set-Content -LiteralPath $Path -Value $text -Encoding utf8
+    Write-TextFile $Path $text
 }
 
 function Remove-CodexMcpServer([string] $Path, [string] $Name) {
@@ -121,7 +140,7 @@ function Remove-CodexMcpServer([string] $Path, [string] $Name) {
     $end = "# END AI-CONTEXT-BOOTSTRAP $($Name.ToUpperInvariant())"
     $pattern = "(?s)\r?\n?$([regex]::Escape($start)).*?$([regex]::Escape($end))\r?\n?"
     $text = [regex]::Replace($text, $pattern, "`r`n").Trim() + "`r`n"
-    Set-Content -LiteralPath $Path -Value $text -Encoding utf8
+    Write-TextFile $Path $text
 }
 
 function Set-MarkedSection([string] $Path, [string] $Name, [string] $Body) {
@@ -132,7 +151,7 @@ function Set-MarkedSection([string] $Path, [string] $Name, [string] $Body) {
     $pattern = "(?s)$([regex]::Escape($start)).*?$([regex]::Escape($end))"
     if ($text -match $pattern) { $text = [regex]::Replace($text, $pattern, $block) }
     else { $text = $text.TrimEnd() + "`r`n`r`n" + $block + "`r`n" }
-    Set-Content -LiteralPath $Path -Value $text -Encoding utf8
+    Write-TextFile $Path $text
 }
 
 function Find-Uv {
@@ -310,7 +329,7 @@ try {
 # Efficient context
 Start with files or modules named by the user. Search narrowly and expand only when evidence requires it. Use the local Graphify MCP first for cross-module dependency questions; in Codex Cloud, use `bash .codex/cloud/query.sh "question"` when MCP is unavailable and keep the default 800-token budget unless more detail is needed. Verify graph results against current source. Small named-file tasks do not require a graph query. Preserve unrelated changes, use focused diffs, and run the narrowest relevant checks. Never add secrets, dumps, dependency folders, or generated output to model context.
 '@
-    Set-Content -LiteralPath '.agents\rules\efficient-context.md' -Value $rule -Encoding utf8
+    Write-TextFile '.agents\rules\efficient-context.md' $rule
     Set-MarkedSection 'AGENTS.md' 'AI-CONTEXT-BOOTSTRAP' '## Efficient agent context
 
 Start with files or modules named by the user and search narrowly. Use the local Graphify MCP for cross-module dependency questions. In Codex Cloud, use `bash .codex/cloud/query.sh "question"` when MCP is unavailable and keep the default 800-token budget unless more detail is needed. Verify graph results against current source. Small named-file tasks do not need Graphify. Preserve unrelated changes, prefer focused diffs, and run the narrowest relevant checks. Keep secrets, dumps, dependencies, and generated output out of model context.'
