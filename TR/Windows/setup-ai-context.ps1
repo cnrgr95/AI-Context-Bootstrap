@@ -5,6 +5,8 @@ param(
     [ValidateSet('Minimal','Balanced','Full')]
     [string] $ContextProfile = 'Minimal',
     [switch] $SkipLaravelBoost,
+    [switch] $EnableLaravelBoost,
+    [switch] $EnableHooks,
     [switch] $NoWatcher
 )
 
@@ -21,7 +23,13 @@ $userHomePath = [Environment]::GetFolderPath('UserProfile')
 function Write-JsonFile([string] $Path, $Value) {
     $directory = Split-Path $Path -Parent
     if ($directory) { New-Item -ItemType Directory -Force -Path $directory | Out-Null }
-    $Value | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $Path -Encoding utf8
+    $tempPath = "$Path.ai-context-$PID.tmp"
+    try {
+        $Value | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $tempPath -Encoding utf8
+        Move-Item -LiteralPath $tempPath -Destination $Path -Force
+    } finally {
+        if (Test-Path -LiteralPath $tempPath) { Remove-Item -LiteralPath $tempPath -Force }
+    }
 }
 
 function Read-McpConfig([string] $Path) {
@@ -184,7 +192,10 @@ try {
         & $graphify cluster-only . --no-label --no-viz
         if ($LASTEXITCODE -ne 0) { throw "Graph clustering failed: $LASTEXITCODE" }
     }
-    & $graphify hook install
+    if ($EnableHooks) {
+        & $graphify hook install
+        if ($LASTEXITCODE -ne 0) { throw "Graphify Git hook installation failed: $LASTEXITCODE" }
+    } else { Write-Host "Git hooks unchanged (opt in with -EnableHooks)." }
 
     $graphDisabledTools = switch ($ContextProfile) {
         'Minimal' { @('get_community','god_nodes','list_prs','get_pr_impact','triage_prs') }
@@ -209,7 +220,7 @@ try {
     Set-CodexMcpServer '.codex\config.toml' 'graphify' $toolPython $proxyArgs $project $graphEnabledTools
 
     $boostConfigured = $false
-    if ((Test-Path 'artisan') -and -not $SkipLaravelBoost -and $ContextProfile -ne 'Minimal') {
+    if ((Test-Path 'artisan') -and $EnableLaravelBoost -and -not $SkipLaravelBoost -and $ContextProfile -ne 'Minimal') {
         $php = Find-CompatiblePhp
         if ($php) {
             $commands = & $php artisan list --raw 2>$null

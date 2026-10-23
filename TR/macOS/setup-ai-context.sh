@@ -2,16 +2,18 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <project-path> [--profile Minimal|Balanced|Full] [--skip-laravel-boost] [--no-watcher]"
+  echo "Usage: $0 <project-path> [--profile Minimal|Balanced|Full] [--enable-laravel-boost] [--enable-hooks] [--no-watcher]"
 }
 
 [[ $# -ge 1 ]] || { usage; exit 2; }
 project_input="$1"; shift
-profile="Minimal"; skip_boost=0; no_watcher=0
+profile="Minimal"; enable_boost=0; enable_hooks=0; no_watcher=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --profile) profile="${2:-}"; shift 2 ;;
-    --skip-laravel-boost) skip_boost=1; shift ;;
+    --skip-laravel-boost) enable_boost=0; shift ;; # backwards compatibility
+    --enable-laravel-boost) enable_boost=1; shift ;;
+    --enable-hooks) enable_hooks=1; shift ;;
     --no-watcher) no_watcher=1; shift ;;
     *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
   esac
@@ -47,11 +49,11 @@ graphify_mcp_bin="$(command -v graphify-mcp)"
 cd "$project"
 mkdir -p .cursor .codex/cloud .agents/rules
 cp "$script_root/graphify-mcp-proxy.py" ".codex/graphify-mcp-proxy.py"
-python3 - "$project" "$project_id" "$graphify_mcp_bin" "$profile" "$HOME" "$skip_boost" <<'PY'
+python3 - "$project" "$project_id" "$graphify_mcp_bin" "$profile" "$HOME" "$enable_boost" <<'PY'
 import json, os, re, subprocess, sys
 from pathlib import Path
 
-project, project_id, graphify_mcp, profile, home, skip_boost = sys.argv[1:]
+project, project_id, graphify_mcp, profile, home, enable_boost = sys.argv[1:]
 root = Path(project)
 
 def add_lines(path, lines):
@@ -71,13 +73,17 @@ def read_json(path):
 def set_server(path, name, value):
     p = Path(path); p.parent.mkdir(parents=True, exist_ok=True)
     data = read_json(p); data["mcpServers"][name] = value
-    p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    temporary = p.with_name(p.name + ".ai-context-" + str(os.getpid()) + ".tmp")
+    temporary.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    os.replace(temporary, p)
 
 def remove_server(path, name):
     p = Path(path)
     if not p.exists(): return
     data = read_json(p); data["mcpServers"].pop(name, None)
-    p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    temporary = p.with_name(p.name + ".ai-context-" + str(os.getpid()) + ".tmp")
+    temporary.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    os.replace(temporary, p)
 
 def set_codex(path, name, command, args, cwd, tools=None):
     p = Path(path); p.parent.mkdir(parents=True, exist_ok=True)
@@ -116,7 +122,7 @@ set_server(Path(home)/".gemini/config/mcp_config.json", f"graphify-{project_id}"
 set_codex(root/".codex/config.toml", "graphify", base["command"], base["args"], project, enabled)
 
 boost = False
-if skip_boost == "0" and profile != "Minimal" and (root/"artisan").exists():
+if enable_boost == "1" and profile != "Minimal" and (root/"artisan").exists():
     php = subprocess.run(["sh","-lc","command -v php"],capture_output=True,text=True).stdout.strip()
     if php and subprocess.run([php,"artisan","--version"],cwd=root,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode == 0:
         commands = subprocess.run([php,"artisan","list","--raw"],cwd=root,capture_output=True,text=True).stdout
@@ -150,7 +156,11 @@ chmod +x .codex/cloud/*.sh
 
 graphify extract . --code-only --no-cluster
 [[ "$profile" == "Minimal" ]] || graphify cluster-only . --no-label --no-viz
-graphify hook install
+if [[ "$enable_hooks" == 1 ]]; then
+  graphify hook install
+else
+  echo "Git hooks unchanged (opt in with --enable-hooks)."
+fi
 
 if [[ "$no_watcher" == 0 ]]; then
   case "$(uname -s)" in
