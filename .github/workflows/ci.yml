@@ -72,11 +72,12 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
 
   graphify-integration:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         graphify-version: ['0.9.94']
     steps:
       - uses: actions/checkout@v4
