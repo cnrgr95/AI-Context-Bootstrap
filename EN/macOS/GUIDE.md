@@ -29,3 +29,7 @@ Token savings depend on the task and model; no fixed reduction is guaranteed. Se
 ## MCP tool permissions and scope
 
 The installer creates a project-scoped `.codex/graphify-mcp-proxy.py` filter. Minimal (5), Balanced (7) and Full (10) are enforced at MCP `tools/list` and `tools/call` for Codex, Cursor and Antigravity/Gemini. Graphify's `project_path` cannot target another project. This filter is **not an operating-system sandbox**; restrict Graphify's process permissions and the AI agent's file/terminal permissions separately. Re-run setup to change profiles.
+
+## Secure setup options
+
+Laravel Boost and Git hook installation are **off by default**. Boost can execute project code through Artisan and may reach the application's database. Explicitly enable it only in trusted projects: Windows `-EnableLaravelBoost -EnableHooks`; Linux/macOS `--enable-laravel-boost --enable-hooks`. Previously managed Laravel Boost MCP entries may be removed on a rerun unless enabled again. Watcher behavior is unchanged (`-NoWatcher` or `--no-watcher` to disable it). MCP profile filtering is not an OS security boundary.

@@ -29,3 +29,7 @@ Token tasarrufu göreve ve modele bağlıdır; sabit bir oran garanti edilmez. [
 ## MCP araç izinleri ve kapsam
 
 Kurucu, projeye özel `.codex/graphify-mcp-proxy.py` filtresini oluşturur. Minimal (5), Balanced (7) ve Full (10) profilleri Codex, Cursor ve Antigravity/Gemini istemcilerinde MCP `tools/list` ve `tools/call` seviyesinde uygulanır. Graphify `project_path` parametresiyle başka bir proje sorgulanamaz. Filtre **işletim sistemi güvenlik sandbox'ı değildir**: Graphify süreci ve AI ajanının terminal/dosya izinleri ayrıca sınırlandırılmalıdır. Profil değiştirildiğinde kurulumu yeniden çalıştırın.
+
+## Güvenli kurulum tercihleri
+
+Laravel Boost ve Git hook kurulumu varsayılan olarak **kapalıdır**. Boost; Artisan üzerinden proje kodu çalıştırabilir ve uygulama/veritabanı erişimi sağlayabilir. Güvendiğiniz projelerde Windows için `-EnableLaravelBoost -EnableHooks`, Linux/macOS için `--enable-laravel-boost --enable-hooks` seçeneklerini kullanın. Mevcut Laravel Boost MCP bağlantıları kurulum tekrarlandığında açık seçim yapılmazsa kaldırılabilir; gerektiğinde yeniden etkinleştirin. Watcher davranışı değişmemiştir (`-NoWatcher` veya `--no-watcher` ile kapatılabilir). Bu mekanizma işletim sistemi izin sınırı değildir.

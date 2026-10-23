@@ -17,3 +17,7 @@ Codex Cloud installs Graphify during the environment setup phase. Keep agent-pha
 ## MCP profile enforcement
 
 Each installer generates a local stdio Graphify proxy that filters the advertised tools and rejects disallowed tool calls. It also blocks cross-project `project_path` arguments. This is tool-level filtering only: it does not sandbox Graphify, the host editor, Laravel Boost or any shell tools. Profiles do not grant or revoke operating-system privileges. Avoid trusting third-party project content as agent instructions.
+
+## Trusted project integrations
+
+Laravel Boost and Git hook installation are now explicit opt-ins. Running Laravel Artisan may execute project code and access the application's database; enabling hooks may affect future Git actions. Turn these on only for reviewed repositories. The Graphify proxy and ignore files are not a substitute for process isolation or least-privilege credentials.

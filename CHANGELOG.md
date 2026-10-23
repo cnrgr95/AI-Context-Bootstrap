@@ -4,6 +4,9 @@ All notable changes follow semantic versioning.
 
 ## Unreleased
 
+- Make Laravel Boost and Git hook installation opt-in to avoid unexpected project-code execution and hook modification.
+- Replace MCP JSON configuration through same-directory temporary files for safer writes.
+
 - Enforce Minimal/Balanced/Full Graphify tool access through a shared stdio MCP proxy on all supported clients and platforms.
 - Block Graphify MCP cross-project `project_path` requests.
 - Add simulated MCP protocol regression tests to Windows/Linux/macOS CI and installer smoke coverage.

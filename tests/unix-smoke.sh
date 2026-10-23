@@ -51,6 +51,7 @@ assert (root/".codex/graphify-mcp-proxy.py").is_file()
 config = json.loads((root/".cursor/mcp.json").read_text())["mcpServers"]["graphify"]
 assert "graphify-mcp-proxy.py" in config["args"][0]
 assert config["args"][-2] == "Minimal"
+assert "laravel-boost" not in json.loads((root/".mcp.json").read_text())["mcpServers"]
 assert len(json.loads((home/".gemini/config/mcp_config.json").read_text())["mcpServers"]) == 1
 PY
 for file in "$temp/project/.codex/cloud/"*.sh; do bash -n "$file"; done
