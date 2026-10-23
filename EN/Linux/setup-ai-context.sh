@@ -130,7 +130,7 @@ mkdir -p -m 700 "$trusted_proxy_dir"
 chmod 700 "$HOME/.local/share/ai-context-bootstrap" "$trusted_proxy_dir"
 install -m 600 "$script_root/graphify-mcp-proxy.py" "$trusted_proxy"
 python3 - "$project" "$project_id" "$graphify_mcp_bin" "$profile" "$HOME" "$enable_boost" <<'PY'
-import json, os, re, subprocess, sys
+import json, os, re, subprocess, sys, tempfile
 from pathlib import Path
 
 project, project_id, graphify_mcp, profile, home, enable_boost = sys.argv[1:]
@@ -150,25 +150,51 @@ def read_json(path):
     data = json.loads(p.read_text(encoding="utf-8")); data.setdefault("mcpServers", {})
     return data
 
+def atomic_json_write(p, data):
+    fd, temp_path = tempfile.mkstemp(prefix=p.name + ".ai-context-", suffix=".tmp", dir=p.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as output:
+            json.dump(data, output, indent=2, ensure_ascii=False)
+            output.write("\n")
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temp_path, p)
+    finally:
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+
+def recognized_server(name, previous):
+    if not isinstance(previous, dict) or previous.get("cwd") != project:
+        return False
+    args = previous.get("args")
+    command = previous.get("command")
+    if not isinstance(args, list) or not isinstance(command, str):
+        return False
+    if name.startswith("graphify"):
+        return (len(args) >= 5 and str(args[0]).endswith("graphify-mcp-proxy.py")
+                and args[-1] == project) or (
+                    "graphify-mcp" in command.lower()
+                    and args == [str(root / "graphify-out/graph.json")]
+                )
+    if name.startswith("laravel-boost"):
+        return args == ["artisan", "boost:mcp"] and "php" in command.lower()
+    return False
+
 def set_server(path, name, value):
     p = Path(path); p.parent.mkdir(parents=True, exist_ok=True)
     data = read_json(p)
     previous = data["mcpServers"].get(name)
     if previous is not None:
-        if not isinstance(previous, dict) or previous.get("cwd") != project:
+        if not recognized_server(name, previous):
             raise RuntimeError(f"Refusing to replace another project's MCP server: {name} in {p}")
     data["mcpServers"][name] = value
-    temporary = p.with_name(p.name + ".ai-context-" + str(os.getpid()) + ".tmp")
-    temporary.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    os.replace(temporary, p)
+    atomic_json_write(p, data)
 
 def remove_server(path, name):
     p = Path(path)
     if not p.exists(): return
     data = read_json(p); data["mcpServers"].pop(name, None)
-    temporary = p.with_name(p.name + ".ai-context-" + str(os.getpid()) + ".tmp")
-    temporary.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    os.replace(temporary, p)
+    atomic_json_write(p, data)
 
 def set_codex(path, name, command, args, cwd, tools=None):
     p = Path(path); p.parent.mkdir(parents=True, exist_ok=True)
