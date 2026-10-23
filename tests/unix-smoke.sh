@@ -102,4 +102,31 @@ if bash "$repo/EN/Linux/setup-ai-context.sh" "$temp/collision" --profile Minimal
 fi
 cmp "$temp/collision/.mcp.json" "$temp/collision-original"
 test ! -f "$temp/collision/.codex/graphify-mcp-proxy.py"
+
+# Regression: an existing, unmarked Codex table must never be duplicated.
+mkdir -p "$temp/unmanaged/.codex"
+git -C "$temp/unmanaged" init -q
+printf '[mcp_servers.graphify]\ncommand = "external"\n' > "$temp/unmanaged/.codex/config.toml"
+cp "$temp/unmanaged/.codex/config.toml" "$temp/unmanaged-original"
+if bash "$repo/EN/Linux/setup-ai-context.sh" "$temp/unmanaged" --profile Minimal --no-watcher >/dev/null 2>&1; then
+  echo "Unmanaged Codex Graphify table was overwritten." >&2
+  exit 1
+fi
+cmp "$temp/unmanaged/.codex/config.toml" "$temp/unmanaged-original"
+python3 - "$temp/unmanaged/.codex/config.toml" <<'PY'
+import sys, tomllib
+with open(sys.argv[1], "rb") as f:
+    assert tomllib.load(f)["mcp_servers"]["graphify"]["command"] == "external"
+PY
+
+# Regression: parent directory symlinks cannot redirect installer writes.
+mkdir -p "$temp/redirect-project" "$temp/redirect-target"
+git -C "$temp/redirect-project" init -q
+ln -s "$temp/redirect-target" "$temp/redirect-project/.codex"
+if bash "$repo/TR/macOS/setup-ai-context.sh" "$temp/redirect-project" --profile Minimal --no-watcher >/dev/null 2>&1; then
+  echo "Installer accepted a redirected .codex directory." >&2
+  exit 1
+fi
+test ! -e "$temp/redirect-target/graphify-mcp-proxy.py"
+
 echo 'Unix installer smoke test passed.'
