@@ -2,6 +2,30 @@
 
 All notable changes follow semantic versioning.
 
+## Unreleased
+
+- Correct Codex TOML collision regex and prevent configuration-dir symlink redirection.
+- Execute MCP proxy from a private user-managed location instead of project-controlled code.
+- Protect MCP stdio against oversized messages, repeated pending requests and backend-initiated RPC.
+- Harden temporary configuration writes and reject unrelated same-project MCP server definitions.
+- Validate real Graphify MCP extraction/handshake on supported CI operating systems with a tested 0.9.94 dependency.
+
+- Add configuration rollback and server-collision safeguards across supported installers.
+- Make background watchers opt-in and block non-tool MCP methods.
+- Add simulated Unix failure-injection regression tests for rollback and third-party MCP preservation.
+
+- Detect missing Graphify MCP proxy and invalid graph JSON in platform status checks.
+
+- Validate Codex Cloud Graphify query budgets (1–16,000 tokens) before invoking the CLI.
+
+- Make Laravel Boost and Git hook installation opt-in to avoid unexpected project-code execution and hook modification.
+- Replace MCP JSON configuration through same-directory temporary files for safer writes.
+
+- Enforce Minimal/Balanced/Full Graphify tool access through a shared stdio MCP proxy on all supported clients and platforms.
+- Block Graphify MCP cross-project `project_path` requests.
+- Add simulated MCP protocol regression tests to Windows/Linux/macOS CI and installer smoke coverage.
+- Clarify that MCP filtering is not an OS security boundary.
+
 ## 2.2.0 - 2026-09-12
 
 - Reorganized the distribution as `EN/{Linux,Windows,macOS}` and `TR/{Linux,Windows,macOS}`.

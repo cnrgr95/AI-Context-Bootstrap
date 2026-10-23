@@ -12,7 +12,7 @@ case "$profile" in
 esac
 
 if ! python3 -c 'import graphify, mcp, watchdog' >/dev/null 2>&1; then
-  python3 -m pip install --user --upgrade 'graphifyy[mcp,watch]' 'mcp<2'
+  python3 -m pip install --user --upgrade 'graphifyy[mcp,watch]==0.9.94' 'mcp<2'
 fi
 
 if ! command -v graphify >/dev/null 2>&1; then

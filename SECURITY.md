@@ -13,3 +13,19 @@ The generated ignore files reduce accidental context inclusion but are not acces
 Supported security updates apply to the latest release.
 
 Codex Cloud installs Graphify during the environment setup phase. Keep agent-phase internet access disabled unless the project requires it. When access is required, use the narrowest domain and HTTP-method allowlist that supports the task.
+
+## MCP profile enforcement
+
+Each installer generates a local stdio Graphify proxy that filters the advertised tools and rejects disallowed tool calls. It also blocks cross-project `project_path` arguments. This is tool-level filtering only: it does not sandbox Graphify, the host editor, Laravel Boost or any shell tools. Profiles do not grant or revoke operating-system privileges. Avoid trusting third-party project content as agent instructions.
+
+## Trusted project integrations
+
+Laravel Boost and Git hook installation are now explicit opt-ins. Running Laravel Artisan may execute project code and access the application's database; enabling hooks may affect future Git actions. Turn these on only for reviewed repositories. The Graphify proxy and ignore files are not a substitute for process isolation or least-privilege credentials.
+
+## Setup rollback boundaries
+
+The installers snapshot tracked project and global Gemini configuration files and restore them when setup fails. Package-manager changes, graph output, hooks and already-created services are outside the rollback scope. MCP server-name conflicts are not overwritten. Watchers require explicit opt-in. This does not make the MCP proxy an OS-level sandbox.
+
+## Trusted executable placement and dependency version
+
+MCP server configuration invokes a per-user proxy installation outside the selected source repository, so source changes alone cannot modify the executable it runs. Configuration and project files should still be treated as untrusted; the installer itself runs with user privileges. Newly installed Graphify dependencies are pinned to validated version 0.9.94, but preexisting installations are preserved, not transparently downgraded. Large stdio messages and outstanding list requests are bounded. These measures are defense in depth, not formal proof of safety or complete crash recovery.

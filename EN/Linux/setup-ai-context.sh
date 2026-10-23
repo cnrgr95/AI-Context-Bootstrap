@@ -2,17 +2,20 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <project-path> [--profile Minimal|Balanced|Full] [--skip-laravel-boost] [--no-watcher]"
+  echo "Usage: $0 <project-path> [--profile Minimal|Balanced|Full] [--enable-laravel-boost] [--enable-hooks] [--enable-watcher]"
 }
 
 [[ $# -ge 1 ]] || { usage; exit 2; }
 project_input="$1"; shift
-profile="Minimal"; skip_boost=0; no_watcher=0
+profile="Minimal"; enable_boost=0; enable_hooks=0; enable_watcher=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --profile) profile="${2:-}"; shift 2 ;;
-    --skip-laravel-boost) skip_boost=1; shift ;;
-    --no-watcher) no_watcher=1; shift ;;
+    --skip-laravel-boost) enable_boost=0; shift ;; # backwards compatibility
+    --enable-laravel-boost) enable_boost=1; shift ;;
+    --enable-hooks) enable_hooks=1; shift ;;
+    --enable-watcher) enable_watcher=1; shift ;;
+    --no-watcher) enable_watcher=0; shift ;; # backwards compatibility
     *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
   esac
 done
@@ -38,19 +41,99 @@ if ! command -v uv >/dev/null; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 if ! command -v graphify >/dev/null || ! command -v graphify-mcp >/dev/null; then
-  uv tool install 'graphifyy[mcp,watch]' --with 'mcp<2>'
+  uv tool install 'graphifyy[mcp,watch]==0.9.94' --with 'mcp<2>'
 fi
 command -v graphify >/dev/null && command -v graphify-mcp >/dev/null || { echo "Graphify executables were not found." >&2; exit 1; }
 graphify_bin="$(command -v graphify)"
 graphify_mcp_bin="$(command -v graphify-mcp)"
 
+# Reject directory symlinks/junction-like redirections before any project writes.
+# Project-local config must not redirect to paths outside the selected repository.
+python3 - "$project" "$HOME" "$project_id" <<'PY'
+import sys
+from pathlib import Path
+root, home, project_id = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
+for base, relatives in [
+    (root, (".cursor", ".codex", ".codex/cloud", ".agents", ".agents/rules", "graphify-out")),
+    (home, (".gemini", ".gemini/config", ".local/share", ".local/share/ai-context-bootstrap", f".local/share/ai-context-bootstrap/{project_id}")),
+]:
+    for relative in relatives:
+        current = base
+        for component in Path(relative).parts:
+            current = current / component
+            if current.is_symlink():
+                raise SystemExit(f"Unsafe symlink in managed path: {current}")
+            if current.exists() and not current.is_dir():
+                raise SystemExit(f"Managed directory is not a directory: {current}")
+PY
 cd "$project"
+trusted_proxy_dir="$HOME/.local/share/ai-context-bootstrap/$project_id"
+trusted_proxy="$trusted_proxy_dir/graphify-mcp-proxy.py"
+
+# Preserve user-owned configuration. Restore all tracked files if any later
+# step fails. Backup directory is private (mktemp mode 0700) and removed at exit.
+tracked_paths=(
+  "$project/.mcp.json"
+  "$project/.cursor/mcp.json"
+  "$project/.codex/config.toml"
+  "$project/.agents/mcp_config.json"
+  "$HOME/.gemini/config/mcp_config.json"
+  "$project/AGENTS.md"
+  "$project/.graphifyignore"
+  "$project/.cursorignore"
+  "$project/.gitignore"
+  "$project/.agents/rules/efficient-context.md"
+  "$project/.codex/graphify-mcp-proxy.py"
+  "$trusted_proxy"
+  "$project/.codex/cloud/setup.sh"
+  "$project/.codex/cloud/query.sh"
+  "$project/.codex/cloud/maintenance.sh"
+  "$project/.codex/cloud/README.md"
+)
+snapshot="$(mktemp -d "${TMPDIR:-/tmp}/ai-context-rollback.XXXXXXXX")"
+for i in "${!tracked_paths[@]}"; do
+  if [[ -L "${tracked_paths[$i]}" ]]; then
+    echo "Refusing to overwrite symlink: ${tracked_paths[$i]}" >&2
+    rm -rf "$snapshot"
+    exit 1
+  fi
+  if [[ -f "${tracked_paths[$i]}" ]]; then
+    cp -p -- "${tracked_paths[$i]}" "$snapshot/$i"
+  elif [[ -e "${tracked_paths[$i]}" ]]; then
+    echo "Refusing to replace non-file path: ${tracked_paths[$i]}" >&2
+    rm -rf "$snapshot"
+    exit 1
+  else
+    : > "$snapshot/absent-$i"
+  fi
+done
+restore_on_exit() {
+  local code=$?
+  trap - EXIT
+  if (( code != 0 )); then
+    echo "Setup failed; restoring original configuration files." >&2
+    for i in "${!tracked_paths[@]}"; do
+      if [[ -f "$snapshot/absent-$i" ]]; then
+        rm -f -- "${tracked_paths[$i]}"
+      else
+        mkdir -p -- "$(dirname "${tracked_paths[$i]}")"
+        cp -p -- "$snapshot/$i" "${tracked_paths[$i]}"
+      fi
+    done
+  fi
+  rm -rf -- "$snapshot"
+  exit "$code"
+}
+trap restore_on_exit EXIT
 mkdir -p .cursor .codex/cloud .agents/rules
-python3 - "$project" "$project_id" "$graphify_mcp_bin" "$profile" "$HOME" "$skip_boost" <<'PY'
-import json, os, re, subprocess, sys
+mkdir -p -m 700 "$trusted_proxy_dir"
+chmod 700 "$HOME/.local/share/ai-context-bootstrap" "$trusted_proxy_dir"
+install -m 600 "$script_root/graphify-mcp-proxy.py" "$trusted_proxy"
+python3 - "$project" "$project_id" "$graphify_mcp_bin" "$profile" "$HOME" "$enable_boost" <<'PY'
+import json, os, re, subprocess, sys, tempfile
 from pathlib import Path
 
-project, project_id, graphify_mcp, profile, home, skip_boost = sys.argv[1:]
+project, project_id, graphify_mcp, profile, home, enable_boost = sys.argv[1:]
 root = Path(project)
 
 def add_lines(path, lines):
@@ -67,16 +150,51 @@ def read_json(path):
     data = json.loads(p.read_text(encoding="utf-8")); data.setdefault("mcpServers", {})
     return data
 
+def atomic_json_write(p, data):
+    fd, temp_path = tempfile.mkstemp(prefix=p.name + ".ai-context-", suffix=".tmp", dir=p.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as output:
+            json.dump(data, output, indent=2, ensure_ascii=False)
+            output.write("\n")
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temp_path, p)
+    finally:
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+
+def recognized_server(name, previous):
+    if not isinstance(previous, dict) or previous.get("cwd") != project:
+        return False
+    args = previous.get("args")
+    command = previous.get("command")
+    if not isinstance(args, list) or not isinstance(command, str):
+        return False
+    if name.startswith("graphify"):
+        return (len(args) >= 5 and str(args[0]).endswith("graphify-mcp-proxy.py")
+                and args[-1] == project) or (
+                    "graphify-mcp" in command.lower()
+                    and args == [str(root / "graphify-out/graph.json")]
+                )
+    if name.startswith("laravel-boost"):
+        return args == ["artisan", "boost:mcp"] and "php" in command.lower()
+    return False
+
 def set_server(path, name, value):
     p = Path(path); p.parent.mkdir(parents=True, exist_ok=True)
-    data = read_json(p); data["mcpServers"][name] = value
-    p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    data = read_json(p)
+    previous = data["mcpServers"].get(name)
+    if previous is not None:
+        if not recognized_server(name, previous):
+            raise RuntimeError(f"Refusing to replace another project's MCP server: {name} in {p}")
+    data["mcpServers"][name] = value
+    atomic_json_write(p, data)
 
 def remove_server(path, name):
     p = Path(path)
     if not p.exists(): return
     data = read_json(p); data["mcpServers"].pop(name, None)
-    p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    atomic_json_write(p, data)
 
 def set_codex(path, name, command, args, cwd, tools=None):
     p = Path(path); p.parent.mkdir(parents=True, exist_ok=True)
@@ -90,8 +208,10 @@ def set_codex(path, name, command, args, cwd, tools=None):
     if pattern.search(text):
         text = pattern.sub(replacement, text)
     else:
-        table = re.compile(r"(?ms)^\[mcp_servers\." + re.escape(name) + r"\]\n.*?(?=^\[|\Z)")
-        text = table.sub("", text).rstrip() + "\n\n" + replacement + "\n"
+        table = re.compile(r"(?m)^\[mcp_servers\." + re.escape(name) + r"\]\s*$")
+        if table.search(text):
+            raise RuntimeError(f"Unmanaged Codex MCP table already exists: {name}")
+        text = text.rstrip() + "\n\n" + replacement + "\n"
     p.write_text(text.lstrip("\n"), encoding="utf-8")
 
 def remove_codex(path, name):
@@ -103,19 +223,19 @@ def remove_codex(path, name):
 
 add_lines(".graphifyignore", ["vendor/","node_modules/","public/build/","public/storage/","storage/","graphify-out/",".env*","*.key","*.pem","*.dump","*.sql","*.sql.enc"])
 add_lines(".cursorignore", ["/vendor/","/node_modules/","/graphify-out/","/public/build/","/public/storage/","/storage/logs/",".env",".env.*","*.key","*.pem","*.dump","*.sql"])
-add_lines(".gitignore", ["/graphify-out/","!/.codex/","/.codex/*","!/.codex/cloud/","!/.codex/cloud/**"])
+add_lines(".gitignore", ["/graphify-out/","!/.codex/","/.codex/*","!/.codex/graphify-mcp-proxy.py","!/.codex/cloud/","!/.codex/cloud/**"])
 
 disabled = {"Minimal":["get_community","god_nodes","list_prs","get_pr_impact","triage_prs"],"Balanced":["list_prs","get_pr_impact","triage_prs"],"Full":[]}[profile]
 enabled = {"Minimal":["query_graph","get_node","get_neighbors","shortest_path","graph_stats"],"Balanced":["query_graph","get_node","get_neighbors","get_community","god_nodes","shortest_path","graph_stats"],"Full":[]}[profile]
-base = {"command": graphify_mcp, "args":[str(root / "graphify-out/graph.json")], "cwd":project}
+base = {"command": sys.executable, "args":[str(Path(home) / ".local/share/ai-context-bootstrap" / project_id / "graphify-mcp-proxy.py"), graphify_mcp, str(root / "graphify-out/graph.json"), profile, project], "cwd":project}
 set_server(root/".mcp.json", "graphify", base)
 set_server(root/".cursor/mcp.json", "graphify", base)
 set_server(root/".agents/mcp_config.json", f"graphify-{project_id}", {**base,"disabledTools":disabled})
 set_server(Path(home)/".gemini/config/mcp_config.json", f"graphify-{project_id}", {**base,"disabledTools":disabled})
-set_codex(root/".codex/config.toml", "graphify", graphify_mcp, base["args"], project, enabled)
+set_codex(root/".codex/config.toml", "graphify", base["command"], base["args"], project, enabled)
 
 boost = False
-if skip_boost == "0" and profile != "Minimal" and (root/"artisan").exists():
+if enable_boost == "1" and profile != "Minimal" and (root/"artisan").exists():
     php = subprocess.run(["sh","-lc","command -v php"],capture_output=True,text=True).stdout.strip()
     if php and subprocess.run([php,"artisan","--version"],cwd=root,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode == 0:
         commands = subprocess.run([php,"artisan","list","--raw"],cwd=root,capture_output=True,text=True).stdout
@@ -126,12 +246,9 @@ if skip_boost == "0" and profile != "Minimal" and (root/"artisan").exists():
             set_codex(root/".codex/config.toml","laravel-boost",php,["artisan","boost:mcp"],project)
             boost=True
 if not boost:
-    for p in [root/".mcp.json",root/".cursor/mcp.json",root/".agents/mcp_config.json"]:
-        if p.exists() and read_json(p)["mcpServers"].get("laravel-boost",{}).get("cwd") == project: remove_server(p,"laravel-boost")
-    global_boost=Path(home)/".gemini/config/mcp_config.json"
-    if global_boost.exists() and read_json(global_boost)["mcpServers"].get(f"laravel-boost-{project_id}",{}).get("cwd") == project:
-        remove_server(global_boost,f"laravel-boost-{project_id}")
-    remove_codex(root/".codex/config.toml","laravel-boost")
+    # A normal install/reinstall must never uninstall another user's MCP server.
+    # Disable/remove Boost only via a dedicated explicit cleanup operation.
+    pass
 
 rule = '## Efficient agent context\n\nStart with named files and search narrowly. Use Graphify MCP for cross-module questions; in Codex Cloud use `bash .codex/cloud/query.sh "question"` if MCP is unavailable. Keep the default 800-token query budget unless more detail is needed. Verify graph results against source, preserve unrelated changes, and keep secrets, dependencies, and generated output out of context.'
 p=root/"AGENTS.md"; text=p.read_text(encoding="utf-8") if p.exists() else ""
@@ -149,9 +266,13 @@ chmod +x .codex/cloud/*.sh
 
 graphify extract . --code-only --no-cluster
 [[ "$profile" == "Minimal" ]] || graphify cluster-only . --no-label --no-viz
-graphify hook install
+if [[ "$enable_hooks" == 1 ]]; then
+  graphify hook install
+else
+  echo "Git hooks unchanged (opt in with --enable-hooks)."
+fi
 
-if [[ "$no_watcher" == 0 ]]; then
+if [[ "$enable_watcher" == 1 ]]; then
   case "$(uname -s)" in
     Linux)
       if command -v systemctl >/dev/null && systemctl --user show-environment >/dev/null 2>&1; then

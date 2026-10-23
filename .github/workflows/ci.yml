@@ -27,6 +27,10 @@ jobs:
           }
           if ($failed) { exit 1 }
 
+      - name: Verify Graphify MCP profile enforcement
+        shell: pwsh
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+
       - name: Reject machine-specific or secret material
         shell: pwsh
         run: |
@@ -45,7 +49,7 @@ jobs:
               $base = Join-Path $lang $platform
               $engine = if ($platform -eq 'Windows') { 'ps1' } else { 'sh' }
               $launcher = if ($platform -eq 'Windows') { 'bat' } else { 'sh' }
-              foreach ($file in @("setup-ai-context.$engine", "check-status.$engine", "INSTALL.$launcher", "CHECK_STATUS.$launcher", 'README.md', 'GUIDE.md', 'AGENT_PROMPT.md', 'SECURITY.md', 'LICENSE', 'cloud/setup.sh', 'cloud/maintenance.sh', 'cloud/query.sh')) {
+              foreach ($file in @("setup-ai-context.$engine", "check-status.$engine", "INSTALL.$launcher", "CHECK_STATUS.$launcher", 'README.md', 'GUIDE.md', 'AGENT_PROMPT.md', 'SECURITY.md', 'LICENSE', 'cloud/setup.sh', 'cloud/maintenance.sh', 'cloud/query.sh', 'graphify-mcp-proxy.py')) {
                 if (-not (Test-Path -LiteralPath (Join-Path $base $file))) { throw "Missing: $base/$file" }
               }
             }
@@ -64,3 +68,23 @@ jobs:
         run: python3 -c 'import sys; assert sys.version_info >= (3, 10)'
       - name: Exercise repeatable Unix installation
         run: bash tests/unix-smoke.sh
+      - name: Verify Graphify MCP profile enforcement
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+
+  graphify-integration:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        graphify-version: ['0.9.94']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install validated Graphify integration test dependency
+        run: python -m pip install "graphifyy[mcp,watch]==${{ matrix.graphify-version }}" 'mcp<2'
+      - name: Exercise real graph extraction and MCP stdio protocol
+        run: python tests/real-graphify-smoke.py
