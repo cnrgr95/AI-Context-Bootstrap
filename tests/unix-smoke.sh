@@ -22,6 +22,7 @@ cat > "$HOME/.local/bin/graphify" <<'SH'
 case "$1" in
   extract) mkdir -p graphify-out; printf '{"nodes":[],"edges":[]}\n' > graphify-out/graph.json ;;
   cluster-only|hook) ;;
+  query) echo "$@" ;;
   *) exit 1 ;;
 esac
 SH
@@ -55,4 +56,18 @@ assert "laravel-boost" not in json.loads((root/".mcp.json").read_text())["mcpSer
 assert len(json.loads((home/".gemini/config/mcp_config.json").read_text())["mcpServers"]) == 1
 PY
 for file in "$temp/project/.codex/cloud/"*.sh; do bash -n "$file"; done
+for language in EN TR; do
+  for platform in Windows Linux macOS; do
+    query="$repo/$language/$platform/cloud/query.sh"
+    bash "$query" "dependency question" 800 | grep -q -- '--budget 800'
+    if bash "$query" "dependency question" not-a-number >/dev/null 2>&1; then
+      echo "Invalid token budget was accepted: $query" >&2
+      exit 1
+    fi
+    if bash "$query" "dependency question" 20000 >/dev/null 2>&1; then
+      echo "Excessive token budget was accepted: $query" >&2
+      exit 1
+    fi
+  done
+done
 echo 'Unix installer smoke test passed.'

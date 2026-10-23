@@ -4,6 +4,8 @@ All notable changes follow semantic versioning.
 
 ## Unreleased
 
+- Validate Codex Cloud Graphify query budgets (1–16,000 tokens) before invoking the CLI.
+
 - Make Laravel Boost and Git hook installation opt-in to avoid unexpected project-code execution and hook modification.
 - Replace MCP JSON configuration through same-directory temporary files for safer writes.
 
