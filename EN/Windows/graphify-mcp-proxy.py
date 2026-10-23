@@ -16,6 +16,22 @@ PROFILES = {
     "Balanced": frozenset(("query_graph", "get_node", "get_neighbors", "shortest_path", "graph_stats", "get_community", "god_nodes")),
     "Full": frozenset(("query_graph", "get_node", "get_neighbors", "shortest_path", "graph_stats", "get_community", "god_nodes", "list_prs", "get_pr_impact", "triage_prs")),
 }
+MAX_MESSAGE_BYTES = 1024 * 1024
+MAX_PENDING_LISTS = 128
+
+
+def bounded_lines(stream):
+    """Avoid unbounded input allocation from a faulty peer."""
+    while True:
+        line = stream.readline(MAX_MESSAGE_BYTES + 1)
+        if not line:
+            return
+        if len(line) > MAX_MESSAGE_BYTES:
+            while line and not line.endswith(b"\n"):
+                line = stream.readline(MAX_MESSAGE_BYTES + 1)
+            print("Oversized MCP message dropped", file=sys.stderr)
+            continue
+        yield line
 
 
 def identifier(value):
@@ -54,6 +70,7 @@ def main():
     pending_lists = set()
     pending_lock = threading.Lock()
     output_lock = threading.Lock()
+    input_lock = threading.Lock()
 
     try:
         child = subprocess.Popen(
@@ -73,6 +90,11 @@ def main():
             sys.stdout.buffer.write(payload)
             sys.stdout.buffer.flush()
 
+    def send_backend(payload):
+        with input_lock:
+            child.stdin.write(payload)
+            child.stdin.flush()
+
     def reply_error(request, message, code=-32602):
         if "id" not in request:
             return
@@ -80,9 +102,22 @@ def main():
         emit((json.dumps(response, separators=(",", ":")) + "\n").encode("utf-8"))
 
     def relay_responses():
-        for line in child.stdout:
+        for line in bounded_lines(child.stdout):
             try:
                 message = json.loads(line)
+                if isinstance(message, dict) and "method" in message:
+                    # A graph tool server must not ask its host to run prompts,
+                    # sample LLM completions or perform other reverse-RPC calls.
+                    if message["method"] == "notifications/tools/list_changed":
+                        emit(line)
+                    elif "id" in message:
+                        response = {"jsonrpc": "2.0", "id": message["id"],
+                                    "error": {"code": -32601, "message": "Backend requests are disabled"}}
+                        try:
+                            send_backend((json.dumps(response) + "\n").encode("utf-8"))
+                        except (OSError, BrokenPipeError):
+                            return
+                    continue
                 key = identifier(message.get("id")) if isinstance(message, dict) and "id" in message else None
                 with pending_lock:
                     is_list = key in pending_lists if key is not None else False
@@ -96,6 +131,10 @@ def main():
                             if isinstance(tool, dict) and tool.get("name") in allowed
                         ]
                         line = (json.dumps(message, separators=(",", ":")) + "\n").encode("utf-8")
+                    elif not (isinstance(message, dict) and "error" in message):
+                        line = (json.dumps({"jsonrpc": "2.0", "id": message.get("id"),
+                                           "error": {"code": -32603, "message": "Invalid backend tool listing"}})
+                                + "\n").encode("utf-8")
             except (ValueError, TypeError, AttributeError):
                 # Non-JSON output must not be treated as a tool list.
                 pass
@@ -104,7 +143,7 @@ def main():
     reader = threading.Thread(target=relay_responses, daemon=True)
     reader.start()
     try:
-        for line in sys.stdin.buffer:
+        for line in bounded_lines(sys.stdin.buffer):
             try:
                 request = json.loads(line)
             except ValueError:
@@ -132,10 +171,15 @@ def main():
                     continue
             if method == "tools/list" and "id" in request:
                 with pending_lock:
-                    pending_lists.add(identifier(request["id"]))
+                    key = identifier(request["id"])
+                    excessive = len(pending_lists) >= MAX_PENDING_LISTS or key in pending_lists
+                    if not excessive:
+                        pending_lists.add(key)
+                if excessive:
+                    reply_error(request, "Too many pending or duplicate MCP tool-list requests", -32000)
+                    continue
             try:
-                child.stdin.write(line)
-                child.stdin.flush()
+                send_backend(line)
             except (OSError, BrokenPipeError):
                 break
     finally:
