@@ -187,7 +187,7 @@ def main():
             child.stdin.close()
         except OSError:
             pass
-        reader.join(timeout=4)
+        reader.join(timeout=15)
         if child.poll() is None:
             child.terminate()
             try:
