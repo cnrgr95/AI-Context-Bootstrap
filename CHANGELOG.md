@@ -4,6 +4,8 @@ All notable changes follow semantic versioning.
 
 ## Unreleased
 
+- Detect missing Graphify MCP proxy and invalid graph JSON in platform status checks.
+
 - Validate Codex Cloud Graphify query budgets (1–16,000 tokens) before invoking the CLI.
 
 - Make Laravel Boost and Git hook installation opt-in to avoid unexpected project-code execution and hook modification.

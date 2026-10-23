@@ -13,6 +13,7 @@ $checks = [ordered]@{
     Graph = Test-Path -LiteralPath $graph -PathType Leaf
     CursorMcp = Test-Path -LiteralPath (Join-Path $project '.cursor\mcp.json') -PathType Leaf
     CodexMcp = Test-Path -LiteralPath (Join-Path $project '.codex\config.toml') -PathType Leaf
+    McpProxy = Test-Path -LiteralPath (Join-Path $project '.codex\graphify-mcp-proxy.py') -PathType Leaf
     CodexCloud = Test-Path -LiteralPath (Join-Path $project '.codex\cloud\setup.sh') -PathType Leaf
     AntigravityMcp = Test-Path -LiteralPath (Join-Path $project '.agents\mcp_config.json') -PathType Leaf
     GraphifyCommand = Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.local\bin\graphify.exe') -PathType Leaf
@@ -35,11 +36,17 @@ if ($task) {
 }
 
 if ($checks.Graph) {
-    $data = Get-Content -LiteralPath $graph -Raw -Encoding utf8 | ConvertFrom-Json
-    $nodeCount = if ($data.nodes) { $data.nodes.Count } else { 0 }
-    $edgeCount = if ($data.links) { $data.links.Count } elseif ($data.edges) { $data.edges.Count } else { 0 }
-    Write-Host "Graph nodes/edges: $nodeCount/$edgeCount"
-    Write-Host "Graph updated: $((Get-Item -LiteralPath $graph).LastWriteTime)"
+    try {
+        $data = Get-Content -LiteralPath $graph -Raw -Encoding utf8 | ConvertFrom-Json
+        if ($null -eq $data -or $null -eq $data.nodes) { throw "Graph JSON has no nodes property." }
+        $nodeCount = @($data.nodes).Count
+        $edgeCount = if ($data.links) { @($data.links).Count } elseif ($data.edges) { @($data.edges).Count } else { 0 }
+        Write-Host "Graph nodes/edges: $nodeCount/$edgeCount"
+        Write-Host "Graph updated: $((Get-Item -LiteralPath $graph).LastWriteTime)"
+    } catch {
+        Write-Host "Graph JSON INVALID: $($_.Exception.Message)" -ForegroundColor Red
+        $failed = $true
+    }
 }
 
 if ($failed) { exit 1 }

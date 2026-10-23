@@ -6,8 +6,13 @@ export PATH="$HOME/.local/bin:$PATH"
 check(){ if [[ -e "$2" ]]; then printf '%-20s OK\n' "$1"; else printf '%-20s MISSING\n' "$1"; failed=1; fi; }
 check Project "$project"
 check Graph "$project/graphify-out/graph.json"
+if [[ -f "$project/graphify-out/graph.json" ]] && ! python3 -m json.tool "$project/graphify-out/graph.json" >/dev/null 2>&1; then
+  echo "Graph JSON is invalid; re-index the repository." >&2
+  failed=1
+fi
 check CursorMcp "$project/.cursor/mcp.json"
 check CodexMcp "$project/.codex/config.toml"
+check McpProxy "$project/.codex/graphify-mcp-proxy.py"
 check CodexCloud "$project/.codex/cloud/setup.sh"
 check AntigravityMcp "$project/.agents/mcp_config.json"
 command -v graphify >/dev/null && printf '%-20s OK\n' GraphifyCommand || { printf '%-20s MISSING\n' GraphifyCommand; failed=1; }
@@ -21,10 +26,10 @@ case "$(uname -s)" in
   Linux)
     if command -v systemctl >/dev/null && systemctl --user is-active --quiet "graphify-${slug}-${hash}.service"; then
       printf '%-20s RUNNING\n' Watcher
-    else printf '%-20s NOT RUNNING (Git hooks available)\n' Watcher; fi ;;
+    else printf '%-20s NOT RUNNING (hooks are optional)\n' Watcher; fi ;;
   Darwin)
     if launchctl print "gui/$(id -u)/com.graphify.${slug}-${hash}" >/dev/null 2>&1; then
       printf '%-20s RUNNING\n' Watcher
-    else printf '%-20s NOT RUNNING (Git hooks available)\n' Watcher; fi ;;
+    else printf '%-20s NOT RUNNING (hooks are optional)\n' Watcher; fi ;;
 esac
 exit "$failed"

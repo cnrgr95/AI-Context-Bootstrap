@@ -70,4 +70,11 @@ for language in EN TR; do
     fi
   done
 done
+cp "$temp/project/.codex/graphify-mcp-proxy.py" "$temp/proxy-backup"
+rm "$temp/project/.codex/graphify-mcp-proxy.py"
+if bash "$repo/EN/Linux/check-status.sh" "$temp/project" >/dev/null 2>&1; then
+  echo "Status checker ignored missing MCP proxy." >&2
+  exit 1
+fi
+cp "$temp/proxy-backup" "$temp/project/.codex/graphify-mcp-proxy.py"
 echo 'Unix installer smoke test passed.'
