@@ -12,7 +12,18 @@ if [[ -f "$project/graphify-out/graph.json" ]] && ! python3 -m json.tool "$proje
 fi
 check CursorMcp "$project/.cursor/mcp.json"
 check CodexMcp "$project/.codex/config.toml"
-check McpProxy "$project/.codex/graphify-mcp-proxy.py"
+proxy_path="$(python3 - "$project/.cursor/mcp.json" <<'PY'
+import json, sys
+try:
+    data = json.load(open(sys.argv[1], encoding="utf-8"))
+    config = data["mcpServers"]["graphify"]
+    path = config["args"][0]
+    print(path if path.endswith("/graphify-mcp-proxy.py") else "/nonexistent/graphify-mcp-proxy.py")
+except (OSError, ValueError, KeyError, IndexError, TypeError):
+    print("/nonexistent/graphify-mcp-proxy.py")
+PY
+)"
+check McpProxy "$proxy_path"
 check CodexCloud "$project/.codex/cloud/setup.sh"
 check AntigravityMcp "$project/.agents/mcp_config.json"
 command -v graphify >/dev/null && printf '%-20s OK\n' GraphifyCommand || { printf '%-20s MISSING\n' GraphifyCommand; failed=1; }
