@@ -57,11 +57,16 @@ class ProfileProxyTests(unittest.TestCase):
                             {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"query_graph","arguments":{}}},
                             {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"triage_prs","arguments":{}}},
                             {"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"query_graph","arguments":{"project_path":str(self.root.parent)}}},
+                            {"jsonrpc":"2.0","id":5,"method":"resources/read","params":{"uri":"file:///tmp/secret"}},
+                            {"jsonrpc":"2.0","id":6,"method":"prompts/get","params":{"name":"anything"}},
+                            {"jsonrpc":"2.0","id":7,"method":"completion/complete","params":{}},
                         ])
                         self.assertEqual(len(responses[1]["result"]["tools"]), count)
                         self.assertIn("result", responses[2])
                         self.assertEqual("error" in responses[3], profile != "Full")
                         self.assertIn("error", responses[4])
+                        for forbidden in (5, 6, 7):
+                            self.assertEqual(responses[forbidden]["error"]["code"], -32601)
 
     def test_invalid_profile_rejected(self):
         script = ROOT / "EN/Linux/graphify-mcp-proxy.py"

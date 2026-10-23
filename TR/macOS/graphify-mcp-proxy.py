@@ -45,6 +45,12 @@ def main():
         return 2
 
     allowed = PROFILES[profile]
+    # Graphify context integration exposes tools only. Other optional MCP
+    # capabilities must not bypass the configured tool allowlist.
+    permitted_methods = frozenset((
+        "initialize", "ping", "tools/list", "tools/call",
+        "notifications/initialized", "notifications/cancelled",
+    ))
     pending_lists = set()
     pending_lock = threading.Lock()
     output_lock = threading.Lock()
@@ -67,10 +73,10 @@ def main():
             sys.stdout.buffer.write(payload)
             sys.stdout.buffer.flush()
 
-    def reply_error(request, message):
+    def reply_error(request, message, code=-32602):
         if "id" not in request:
             return
-        response = {"jsonrpc": "2.0", "id": request["id"], "error": {"code": -32602, "message": message}}
+        response = {"jsonrpc": "2.0", "id": request["id"], "error": {"code": code, "message": message}}
         emit((json.dumps(response, separators=(",", ":")) + "\n").encode("utf-8"))
 
     def relay_responses():
@@ -107,6 +113,9 @@ def main():
             if not isinstance(request, dict):
                 continue
             method = request.get("method")
+            if method is not None and method not in permitted_methods:
+                reply_error(request, "MCP method not permitted by Graphify proxy", -32601)
+                continue
             if method == "tools/call":
                 params = request.get("params")
                 if not isinstance(params, dict) or params.get("name") not in allowed:
