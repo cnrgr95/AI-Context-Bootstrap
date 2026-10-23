@@ -68,6 +68,33 @@ class ProfileProxyTests(unittest.TestCase):
                         for forbidden in (5, 6, 7):
                             self.assertEqual(responses[forbidden]["error"]["code"], -32601)
 
+
+    def test_malformed_backend_listing_fails_closed(self):
+        script = ROOT / "EN/Linux/graphify-mcp-proxy.py"
+        self.backend.write_text(
+            BACKEND.replace(
+                'result = {"tools":[{"name":name} for name in names]}',
+                'result = {"unexpected": "no tools list"}'
+            ), encoding="utf-8"
+        )
+        responses = self.query(script, "Minimal", [
+            {"jsonrpc":"2.0","id":20,"method":"tools/list"},
+        ])
+        self.assertEqual(responses[20]["error"]["code"], -32603)
+
+    def test_oversized_input_does_not_reach_backend(self):
+        script = ROOT / "EN/Linux/graphify-mcp-proxy.py"
+        long_request = b"x" * (1024 * 1024 + 20) + b"\\n"
+        valid = (json.dumps({"jsonrpc":"2.0","id":21,"method":"ping"}) + "\\n").encode()
+        process = subprocess.run(
+            [sys.executable, str(script), sys.executable, str(self.backend), "Minimal", str(self.root)],
+            input=long_request + valid, capture_output=True, timeout=15,
+        )
+        self.assertEqual(process.returncode, 0, process.stderr.decode(errors="replace"))
+        responses = [json.loads(line) for line in process.stdout.splitlines()]
+        self.assertEqual([r["id"] for r in responses], [21])
+        self.assertIn(b"Oversized MCP message", process.stderr)
+
     def test_invalid_profile_rejected(self):
         script = ROOT / "EN/Linux/graphify-mcp-proxy.py"
         command = [sys.executable, str(script), sys.executable, str(self.backend), "SuperUser", str(self.root)]
